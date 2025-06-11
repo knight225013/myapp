@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "FBAOrder" ALTER COLUMN "weight" DROP NOT NULL,
+ALTER COLUMN "cargo" DROP NOT NULL;
+
+-- AlterTable
+ALTER TABLE "TraditionalOrder" ALTER COLUMN "weight" DROP NOT NULL,
+ALTER COLUMN "cargo" DROP NOT NULL;

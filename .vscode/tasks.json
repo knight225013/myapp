@@ -1,0 +1,17 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "move-old",
+      "type": "shell",
+      "command": "npm run move-old",
+      "problemMatcher": []
+    },
+    {
+      "label": "update-imports",
+      "type": "shell",
+      "command": "npm run update-imports",
+      "problemMatcher": []
+    }
+  ]
+}

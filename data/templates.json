@@ -1,0 +1,29 @@
+[
+  {
+    "id": "template_1688",
+    "name": "1688模板",
+    "mode": "grid",
+    "startRow": 1,
+    "bindings": [
+      {
+        "field": "waybillNumber",
+        "from": "A2",
+        "direction": "vertical",
+        "length": 3
+      },
+      {
+        "field": "productName",
+        "from": "B3",
+        "direction": "horizontal",
+        "length": 2
+      }
+    ]
+  },
+  {
+    "id": "template_default",
+    "name": "默认模板",
+    "mode": "fixed",
+    "startRow": 2,
+    "columns": ["waybillNumber", "clientCode", "weight", "productName"]
+  }
+]

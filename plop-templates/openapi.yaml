@@ -1,0 +1,28 @@
+openapi: 3.0.0
+info:
+  title: Waybill API
+  version: 1.0.0
+paths:
+  /api/waybill:
+    post:
+      summary: Create a waybill
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Waybill'
+      responses:
+        '201':
+          description: Created
+components:
+  schemas:
+    Waybill:
+      type: object
+      properties:
+        recipient:
+          type: string
+        country:
+          type: string
+      required:
+        - recipient
+        - country

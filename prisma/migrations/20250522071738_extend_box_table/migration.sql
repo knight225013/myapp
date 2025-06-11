@@ -1,0 +1,25 @@
+-- AlterTable
+ALTER TABLE "Box" ADD COLUMN     "asin" TEXT,
+ADD COLUMN     "brand" TEXT,
+ADD COLUMN     "declaredQuantity" INTEGER NOT NULL DEFAULT 1,
+ADD COLUMN     "declaredValue" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+ADD COLUMN     "fnsku" TEXT,
+ADD COLUMN     "height" DOUBLE PRECISION,
+ADD COLUMN     "hsCode" TEXT,
+ADD COLUMN     "length" DOUBLE PRECISION,
+ADD COLUMN     "material" TEXT NOT NULL DEFAULT '',
+ADD COLUMN     "model" TEXT,
+ADD COLUMN     "productNameCn" TEXT NOT NULL DEFAULT '',
+ADD COLUMN     "productNameEn" TEXT NOT NULL DEFAULT '',
+ADD COLUMN     "sku" TEXT,
+ADD COLUMN     "usage" TEXT,
+ADD COLUMN     "weight" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+ADD COLUMN     "width" DOUBLE PRECISION;
+
+-- AlterTable
+ALTER TABLE "FBAOrder" ADD COLUMN     "hasLiquid" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "hasPowder" BOOLEAN NOT NULL DEFAULT false;
+
+-- AlterTable
+ALTER TABLE "TraditionalOrder" ADD COLUMN     "hasLiquid" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "hasPowder" BOOLEAN NOT NULL DEFAULT false;

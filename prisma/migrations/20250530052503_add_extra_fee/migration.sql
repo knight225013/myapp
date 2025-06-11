@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "FBAOrder" ADD COLUMN     "extraFee" DOUBLE PRECISION;

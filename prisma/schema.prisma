@@ -1,0 +1,427 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator zod {
+  provider = "zod-prisma-types"
+  output   = "../prisma/zod"   // ← schema.prisma 在 prisma/，向上一级再进 prisma/zod
+}
+
+// 数据源配置
+datasource db {
+  provider = "postgresql" // 使用 PostgreSQL 数据库
+  url      = env("DATABASE_URL") // 数据库连接 URL，从环境变量读取
+}
+
+// 运单状态枚举
+enum OrderStatus {
+  已下单 // 运单已创建
+  已收货 // 货物已被接收
+  转运中 // 货物在运输途中
+  已签收 // 货物已被签收
+  退件 // 货物被退回
+  已取消 // 运单已取消
+}
+
+// 用户角色枚举
+enum RoleType {
+  SUPER_ADMIN // 超级管理员
+  TENANT_ADMIN // 租户管理员
+  TENANT_STAFF // 租户员工
+}
+
+// 权限类型枚举
+enum PermissionType {
+  VIEW_WAYBILL // 查看运单
+  CREATE_WAYBILL // 创建运单
+  UPDATE_WAYBILL // 更新运单
+  CANCEL_WAYBILL // 取消运单
+  VIEW_CUSTOMER // 查看客户
+  CREATE_CUSTOMER // 创建客户
+  UPDATE_CUSTOMER // 更新客户
+  VIEW_CHANNEL // 查看渠道
+  UPDATE_CHANNEL // 更新渠道
+  VIEW_REPORT // 查看报表
+  EXPORT_EXCEL // 导出 Excel
+  CREATE_STAFF // 创建员工
+  ASSIGN_ROLE // 分配角色
+  UPDATE_PASSWORD // 更新密码
+}
+
+// 财务记录状态枚举
+enum FinanceStatus {
+  草稿 // 财务记录为草稿状态
+  已提交 // 已提交待审核
+  审核中 // 正在审核
+  已审核 // 审核通过
+  已驳回 // 审核被驳回
+  待付款 // 等待付款
+  部分付款 // 已部分付款
+  已付款_已收款 // 已完成付款或收款
+  已对账 // 已完成对账
+  作废 // 记录已作废
+}
+
+// 租户模型
+model Tenant {
+  id          String       @id @default(uuid()) // 租户唯一标识
+  name        String // 租户名称
+  createdAt   DateTime     @default(now()) // 创建时间
+  users       User[] // 关联的用户
+  fbaOrders   FBAOrder[] // 关联的 FBA 运单
+  receivables Receivable[] // 关联的应收记录
+  payables    Payable[] // 关联的应付记录
+  customers   Customer[] // 关联的客户
+}
+
+// 用户模型
+model User {
+  id          String       @id @default(uuid()) // 用户唯一标识
+  name        String // 用户姓名
+  email       String       @unique // 用户邮箱，唯一
+  password    String // 用户密码
+  role        RoleType     @default(TENANT_STAFF) // 用户角色，默认租户员工
+  tenant      Tenant       @relation(fields: [tenantId], references: [id]) // 关联租户
+  tenantId    String // 租户 ID
+  permissions Permission[] // 关联的权限
+  fbaOrders   FBAOrder[] // 关联的创建运单
+  receivables Receivable[] // 关联的应收记录
+  payables    Payable[] // 关联的应付记录
+  createdAt   DateTime     @default(now()) // 创建时间
+}
+
+// 权限模型
+model Permission {
+  id     String         @id @default(uuid()) // 权限唯一标识
+  type   PermissionType // 权限类型
+  user   User           @relation(fields: [userId], references: [id]) // 关联用户
+  userId String // 用户 ID
+}
+
+// 箱子模型
+model Box {
+  id               String    @id @default(uuid()) // 箱子唯一标识
+  code             String // 箱子编码
+  fullCode         String // 完整编码
+  weight           Float?    @default(0.0) // 重量（kg）
+  length           Float? // 长度（cm）
+  width            Float? // 宽度（cm）
+  height           Float? // 高度（cm）
+  hasBattery       Boolean   @default(false) // 是否含电池
+  productNameEn    String    @default("") // 英文产品名称
+  productNameCn    String    @default("") // 中文产品名称
+  declaredValue    Float     @default(0.0) // 申报金额
+  declaredQuantity Int       @default(1) // 申报数量
+  material         String    @default("") // 材质
+  hsCode           String? // 海关编码
+  usage            String? // 用途
+  brand            String? // 品牌
+  model            String? // 型号
+  sku              String? // SKU
+  asin             String? // ASIN
+  fnsku            String? // FNSKU
+  fbaOrder         FBAOrder? @relation(name: "FBAOrderBoxes", fields: [fbaOrderId], references: [id]) // 关联运单
+  fbaOrderId       String? // 运单 ID
+  tradOrderId      String? // 传统订单 ID
+}
+
+// 运单轨迹记录表
+model ShipmentLog {
+  id         String   @id @default(uuid()) // 轨迹记录唯一标识
+  shipmentId String // 所属运单 ID
+  status     String // 物流状态（如已签收）
+  remark     String? // 备注
+  location   String? // 地点信息
+  timestamp  DateTime // 轨迹时间
+  shipment   FBAOrder @relation(name: "ShipmentLogs", fields: [shipmentId], references: [id], onDelete: Cascade) // 关联运单，级联删除
+}
+
+// 客户模型
+model Customer {
+  id        String     @id @default(uuid()) // 客户唯一标识
+  name      String // 客户名称
+  tenantId  String // 租户 ID
+  email     String? // 客户邮箱
+  phone     String? // 客户电话
+  address   String? // 客户地址
+  createdAt DateTime   @default(now()) // 创建时间
+  tenant    Tenant     @relation(fields: [tenantId], references: [id]) // 关联租户
+  fbaOrders FBAOrder[] @relation("Sender") // 关联的发件运单
+}
+
+// FBA 运单表
+model FBAOrder {
+  id                  String        @id @default(uuid()) // 运单唯一标识
+  channelId           String // 渠道 ID
+  channel             Channel       @relation(fields: [channelId], references: [id]) // 关联渠道
+  freightCost         Float? // 运费
+  totalCost           Float? // 总费用
+  recipient           String // 收件人姓名
+  country             String // 目的国家
+  quantity            Int // 件数
+  weight              Float? // 实重（kg）
+  volume              Float? // 体积（cbm）
+  volumetricWeight    Float? // 材积重（kg）
+  chargeWeight        Float? // 收费重（kg）
+  cargo               String? // 货物描述
+  status              OrderStatus // 运单状态
+  createdAt           DateTime      @default(now()) // 创建时间
+  tenantId            String // 租户 ID
+  tenant              Tenant        @relation(fields: [tenantId], references: [id]) // 关联租户
+  customerId          String // 客户 ID
+  customer            User?         @relation(fields: [customerId], references: [id], onDelete: Cascade) // 关联客户
+  type                String // 运单类型
+  warehouse           String? // 入仓仓库
+  length              Float? // 长度（cm）
+  width               Float? // 宽度（cm）
+  height              Float? // 高度（cm）
+  hasBattery          Boolean       @default(false) // 是否含电池
+  hasMagnetic         Boolean       @default(false) // 是否含磁性物
+  hasDangerous        Boolean       @default(false) // 是否含危险品
+  hasLiquid           Boolean       @default(false) // 是否含液体
+  hasPowder           Boolean       @default(false) // 是否含粉末
+  clientCode          String? // 客户编码
+  company             String? // 收件公司
+  phone               String? // 收件人电话
+  email               String? // 收件人邮箱
+  store               String? // 店铺名称
+  ref1                String? // 客户参考号
+  vat                 String? // VAT 税号
+  ioss                String? // IOSS 编号
+  eori                String? // EORI 编号
+  currency            String? // 币种
+  category            String? // 商品分类
+  productName         String? // 商品名称
+  attrs               String[] // 其他属性
+  notes               String? // 备注
+  insurance           Boolean       @default(false) // 是否投保
+  address1            String? // 地址行 1
+  address2            String? // 地址行 2
+  address3            String? // 地址行 3
+  addressDetail       String? // 地址详情
+  city                String? // 城市
+  state               String? // 州/省
+  postalCode          String? // 邮编
+  declaredValue       String? // 申报价值
+  declaredQuantity    String? // 申报数量
+  senderId            String? // 发件人 ID
+  sender              Customer?     @relation("Sender", fields: [senderId], references: [id]) // 关联发件人
+  senderName          String? // 发件人姓名
+  extraFee            Float? // 附加费
+  boxes               Box[]         @relation(name: "FBAOrderBoxes") // 关联箱子
+  waybillRuleId       String? // 运单规则 ID
+  waybillRule         WaybillRule?  @relation(fields: [waybillRuleId], references: [id]) // 关联运单规则
+  waybillNumber       String? // 运单号
+  billingPrecision    Int? // 计费精度
+  isCOD               Boolean       @default(false) // 是否货到付款
+  allowCustomerCancel Boolean       @default(false) // 是否允许客户取消
+  trackingNumber      String? // 追踪号
+  labelUploaded       Boolean       @default(false) // 是否上传面单
+  errors              String[]      @default([]) // 错误记录
+  logs                ShipmentLog[] @relation(name: "ShipmentLogs") // 关联物流轨迹
+  carrierId           String? // 物流商 ID
+  carrier             Carrier?      @relation(fields: [carrierId], references: [id]) // 关联物流商
+  attachments         Attachment[] // 关联附件
+}
+
+// 附件模型
+model Attachment {
+  id        String   @id @default(uuid()) // 附件唯一标识
+  name      String // 附件名称
+  path      String // 附件路径
+  type      String // 附件类型
+  waybillId String // 运单 ID
+  waybill   FBAOrder @relation(fields: [waybillId], references: [id]) // 关联运单
+}
+
+// 物流商模型
+model Carrier {
+  id          String     @id @default(uuid()) // 物流商唯一标识
+  name        String     @unique // 物流商名称
+  code        String? // AfterShip Slug
+  website     String? // 网站
+  logoUrl     String? // 图标链接
+  description String? // 描述
+  region      String? // 地区
+  createdAt   DateTime   @default(now()) // 创建时间
+  channels    Channel[] // 关联渠道
+  fbaOrders   FBAOrder[] // 关联运单
+}
+
+// 物流渠道模型
+model Channel {
+  id                      String           @id @default(uuid()) // 渠道唯一标识
+  name                    String           @unique // 渠道名称
+  code                    String? // AfterShip Slug
+  type                    String // 渠道类型
+  country                 String? // 国家
+  warehouse               String? // 仓库
+  origin                  String? // 起始地
+  currency                String // 币种
+  decimal                 String? // 小数位
+  method                  String? // 计费方式
+  rounding                String? // 舍入规则
+  compareMode             String?          @default("round_then_compare") // 比较模式
+  volRatio                Float? // 体积比率
+  cubeRatio               Float? // 立方比率
+  splitRatio              Float? // 分割比率
+  chargeMethod            String? // 收费方式
+  minCharge               Float? // 最低收费
+  ticketPrecision         Float? // 票据精度
+  boxPrecision            Float? // 箱子精度
+  sizePrecision           Float? // 尺寸精度
+  minPieces               Int? // 最小件数
+  maxPieces               Int? // 最大件数
+  minBoxRealWeight        Float? // 最小箱子实重
+  minBoxMaterialWeight    Float? // 最小箱子材积重
+  minBoxChargeWeight      Float? // 最小箱子收费重
+  minBoxAvgWeight         Float? // 最小箱子平均重
+  minTicketChargeWeight   Float? // 最小票据收费重
+  maxTicketChargeWeight   Float? // 最大票据收费重
+  minTicketRealWeight     Float? // 最小票据实重
+  maxTicketRealWeight     Float? // 最大票据实重
+  minBoxRealWeightLimit   Float? // 最小箱子实重限制
+  maxBoxRealWeight        Float? // 最大箱子实重
+  minBoxChargeWeightLimit Float? // 最小箱子收费重限制
+  maxBoxChargeWeight      Float? // 最大箱子收费重
+  minDeclareValue         Float? // 最小申报价值
+  maxDeclareValue         Float? // 最大申报价值
+  aging                   String? // 时效
+  waybillRuleId           String?          @unique // 运单规则 ID
+  labelCode               String? // 标签代码
+  assignedUser            String? // 分配用户
+  userLevel               String? // 用户级别
+  declareCurrency         String? // 申报币种
+  defaultDeclareCurrency  String? // 默认申报币种
+  sender                  String? // 发件人
+  showWeight              Boolean          @default(false) // 显示重量
+  showSize                Boolean          @default(false) // 显示尺寸
+  requireWeight           Boolean          @default(false) // 要求重量
+  requireSize             Boolean          @default(false) // 要求尺寸
+  requirePhone            Boolean          @default(false) // 要求电话
+  requireEmail            Boolean          @default(false) // 要求邮箱
+  requirePackingList      Boolean          @default(false) // 要求装箱单
+  verifySalesLink         Boolean          @default(false) // 验证销售链接
+  verifyImageLink         Boolean          @default(false) // 验证图片链接
+  requireVAT              Boolean          @default(false) // 要求 VAT
+  requireVATFiling        Boolean          @default(false) // 要求 VAT 备案
+  requireEORI             Boolean          @default(false) // 要求 EORI
+  enableBilling           Boolean          @default(false) // 启用计费
+  showBilling             Boolean          @default(false) // 显示计费
+  controlBilling          Boolean          @default(false) // 控制计费
+  controlReceivingFee     Boolean          @default(false) // 控制接收费用
+  promptUnderpayment      Boolean          @default(false) // 提示欠费
+  modifyVolRatio          Boolean          @default(false) // 修改体积比率
+  showSupplierData        Boolean          @default(false) // 显示供应商数据
+  orderBySKULibrary       Boolean          @default(false) // 按 SKU 库排序
+  allowCancel             Boolean          @default(false) // 允许取消
+  noAutoCancelAPIFail     Boolean          @default(false) // API 失败不自动取消
+  allowChannelChange      Boolean          @default(false) // 允许更改渠道
+  allowEdit               Boolean          @default(false) // 允许编辑
+  allowTrackingEntry      Boolean          @default(false) // 允许录入跟踪
+  allowLabelUpload        Boolean          @default(false) // 允许上传面单
+  hideCarrier             Boolean          @default(false) // 隐藏物流商
+  refundOnReturn          Boolean          @default(false) // 退货退款
+  noRefundOnCancel        Boolean          @default(false) // 取消不退款
+  showInWMS               Boolean          @default(false) // 在 WMS 显示
+  enableCOD               Boolean          @default(false) // 启用货到付款
+  restrictWarehouseCode   Boolean          @default(false) // 限制仓库代码
+  roundBeforeSplit        Boolean          @default(false) // 分割前舍入
+  waybillRule             WaybillRule?     @relation(name: "ChannelWaybillRule", fields: [waybillRuleId], references: [id]) // 关联运单规则
+  rates                   RateRule[] // 关联计费规则
+  chargeWeight            Float? // 收费重（kg）
+  chargeVolume            Float? // 收费体积（cbm）
+  chargePrice             Float? // 收费价格
+  unitType                String? // 计费单位
+  createdAt               DateTime         @default(now()) // 创建时间
+  fbaOrders               FBAOrder[] // 关联运单
+  extraFeeRules           Json? // 附加费规则
+  carrierId               String? // 物流商 ID
+  carrier                 Carrier?         @relation(fields: [carrierId], references: [id]) // 关联物流商
+  transportPrices         TransportPrice[] @relation(name: "TransportPriceToChannel") // 关联运价
+}
+
+// 计费规则模型
+model RateRule {
+  id         String  @id @default(uuid()) // 计费规则唯一标识
+  channelId  String // 渠道 ID
+  channel    Channel @relation(fields: [channelId], references: [id]) // 关联渠道
+  minWeight  Float // 最小重量
+  maxWeight  Float // 最大重量
+  weightType String // 重量类型
+  divisor    Int? // 除数
+  sideRule   String? // 附加规则
+  extraFee   Float? // 附加费
+  baseRate   Float // 基础费率
+  taxRate    Float? // 税率
+  otherFee   Float? // 其他费用
+  priority   Int // 优先级
+}
+
+// 运单规则模型
+model WaybillRule {
+  id        String     @id @default(uuid()) // 运单规则唯一标识
+  name      String // 规则名称
+  pattern   String // 规则模式
+  channelId String?    @unique // 渠道 ID
+  channel   Channel?   @relation(name: "ChannelWaybillRule") // 关联渠道
+  createdAt DateTime   @default(now()) // 创建时间
+  fbaOrders FBAOrder[] // 关联运单
+}
+
+// 应收记录模型
+model Receivable {
+  id          String        @id @default(uuid()) // 应收记录唯一标识
+  orderId     String? // 订单 ID
+  client      String // 客户
+  amount      Float // 金额
+  currency    String // 币种
+  status      FinanceStatus // 状态
+  dueDate     String // 到期日期
+  exception   String? // 异常信息
+  tenant      Tenant        @relation(fields: [tenantId], references: [id]) // 关联租户
+  tenantId    String // 租户 ID
+  createdBy   User?         @relation(fields: [createdById], references: [id]) // 关联创建者
+  createdById String? // 创建者 ID
+  createdAt   DateTime      @default(now()) // 创建时间
+}
+
+// 应付记录模型
+model Payable {
+  id          String        @id @default(uuid()) // 应付记录唯一标识
+  orderId     String? // 订单 ID
+  client      String // 客户
+  amount      Float // 金额
+  currency    String // 币种
+  status      FinanceStatus // 状态
+  dueDate     String // 到期日期
+  exception   String? // 异常信息
+  tenant      Tenant        @relation(fields: [tenantId], references: [id]) // 关联租户
+  tenantId    String // 租户 ID
+  createdBy   User?         @relation(fields: [createdById], references: [id]) // 关联创建者
+  createdById String? // 创建时间
+  createdAt   DateTime      @default(now()) // 创建时间
+}
+
+// 运价主表
+model TransportPrice {
+  id        String         @id @default(uuid()) // 运价唯一标识
+  name      String // 运价名称
+  region    String // 区域
+  service   String // 服务类型
+  currency  String // 币种
+  channelId String // 渠道 ID
+  channel   Channel        @relation(fields: [channelId], references: [id], name: "TransportPriceToChannel") // 关联渠道
+  settings  PriceSetting[] // 关联运价设置
+  createdAt DateTime       @default(now()) // 创建时间
+}
+
+// 运价设置（时段）
+model PriceSetting {
+  id        String         @id @default(uuid()) // 运价设置唯一标识
+  priceId   String // 运价 ID
+  price     TransportPrice @relation(fields: [priceId], references: [id]) // 关联运价
+  period    String // 生效时段
+  rate      Float // 费率
+  createdAt DateTime       @default(now()) // 创建时间
+}

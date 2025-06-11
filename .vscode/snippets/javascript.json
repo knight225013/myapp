@@ -1,0 +1,13 @@
+{
+  "Create Controller": {
+    "prefix": "createCtrl",
+    "body": [
+      "export async function create${1:Module}(req, res) {",
+      "  const result = ${1:Module}Model.safeParse(req.body);",
+      "  if (!result.success) return res.status(400).json({ error: result.error.format() });",
+      "  // TODO: implement business logic",
+      "}"
+    ],
+    "description": "生成一个简单的 Express 控制器模板"
+  }
+}

@@ -1,0 +1,16 @@
+export const systemFields = [
+  { field: 'weight', label: '重量', type: 'number' },
+  { field: 'volume', label: '体积', type: 'number' },
+  { field: 'declaredValue', label: '申报价值', type: 'number' },
+  { field: 'girth', label: '围长', type: 'number' },
+  { field: 'boxWeight', label: '箱重', type: 'number' },
+  { field: 'storageDays', label: '仓储天数', type: 'number' },
+  { field: 'postalCode', label: '邮政编码', type: 'string' },
+  { field: 'baseCharge', label: '基础运费', type: 'number' },
+  { field: 'totalFee', label: '总费用', type: 'number' },
+  { field: 'quantity', label: '件数', type: 'number' },
+  { field: 'category', label: '品类', type: 'string' },
+  { field: 'isCustomsDeclared', label: '需报关', type: 'boolean' },
+  { field: 'hasInvoice', label: '有发票', type: 'boolean' },
+  { field: 'isWoodProduct', label: '木制品', type: 'boolean' },
+];
