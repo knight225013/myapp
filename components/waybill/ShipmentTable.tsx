@@ -1,7 +1,7 @@
 'use client';
 
 import { CheckCircle, Truck, XCircle, RotateCcw, Package, Box } from 'lucide-react';
-import { Shipment } from '../types/shipment';
+import { Shipment } from '@/types/shipment';
 
 export default function ShipmentTable({
   data,

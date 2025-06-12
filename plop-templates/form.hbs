@@ -1,7 +1,109 @@
-'use client'; export function
-{{properCase name}}Form() { return (
-<form className='space-y-4'>
-  <input type='text' placeholder='输入示例字段...' />
-  <button type='submit'>提交</button>
-</form>
-); }
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+interface PriceFormProps {
+  initialData?: {
+    id?: string;
+    name: string;
+    channelId: string;
+    currency: string;
+  };
+  channels: Array<{ id: string; name: string }>;
+}
+
+export default function PriceForm({ initialData, channels }: PriceFormProps) {
+  const router = useRouter();
+  const [formData, setFormData] = useState({
+    name: initialData?.name || '',
+    channelId: initialData?.channelId || '',
+    currency: initialData?.currency || ''
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(
+        initialData?.id 
+          ? `http://localhost:4000/api/prices/${initialData.id}`
+          : 'http://localhost:4000/api/prices',
+        {
+          method: initialData?.id ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        }
+      );
+      
+      if (!res.ok) throw new Error('保存失败');
+      
+      router.push('/channels/price-maintenance');
+      router.refresh();
+    } catch (error) {
+      console.error('保存失败:', error);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700">名称</label>
+        <input
+          type="text"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700">渠道</label>
+        <select
+          value={formData.channelId}
+          onChange={(e) => setFormData({ ...formData, channelId: e.target.value })}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          required
+        >
+          <option value="">请选择渠道</option>
+          {channels.map((channel) => (
+            <option key={channel.id} value={channel.id}>
+              {channel.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700">币种</label>
+        <select
+          value={formData.currency}
+          onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          required
+        >
+          <option value="">请选择币种</option>
+          <option value="CNY">CNY</option>
+          <option value="USD">USD</option>
+          <option value="EUR">EUR</option>
+        </select>
+      </div>
+
+      <div className="flex justify-end space-x-2">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+        >
+          取消
+        </button>
+        <button
+          type="submit"
+          className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700"
+        >
+          保存
+        </button>
+      </div>
+    </form>
+  );
+}

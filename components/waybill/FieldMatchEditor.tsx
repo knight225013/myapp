@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { parseExcel } from '../utils/parseExcelGeneric';
+import { parseExcel } from '@/utils/parseExcelGeneric';
 import { X } from 'lucide-react';
 import { TemplateInfo, TemplateMode, FieldAreaBinding } from '@/types/template';
 

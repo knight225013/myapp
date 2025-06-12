@@ -1,9 +1,9 @@
 'use client';
 import { useState } from 'react';
-import ChannelViewDetail from './ChannelViewDetail';
+import ChannelViewDetail from '@components/channel/ChannelViewDetail';
 import ChannelForm from './ChannelForm';
-import { ExtraFeeRule } from './ExtraFeeRule/types';
-import { Channel } from '../types/shipment';
+import { ExtraFeeRule } from '@components/ExtraFeeRule/types';
+import { Channel } from '@/types/shipment';
 
 interface ChannelTableProps {
   channels: Channel[];

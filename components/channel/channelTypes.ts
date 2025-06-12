@@ -1,5 +1,5 @@
-// src/components/channelTypes.ts
-import { FeeRule } from '@/components/smart-template/fee-rules/types';
+// components/channelTypes.ts
+import { FeeRule } from '@components/smart-template/fee-rules/types';
 
 export interface RateRule {
   id?: string;

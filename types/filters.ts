@@ -1,10 +1,10 @@
-export type Filters = {
+export interface Filters {
   status: string;
   country: string;
-  channel: string; // 或 string | undefined，取决于需求
+  channel: string;
   waybillNumber: string;
   client: string;
   date: string;
   trackingNumber?: string;
   recipient?: string;
-};
+}

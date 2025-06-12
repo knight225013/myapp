@@ -6,7 +6,7 @@ import FeeRuleSelectorDialog from '@/components/smart-template/fee-rules/FeeRule
 import FeeRuleCardList from '@/components/smart-template/fee-rules/FeeRuleCardList';
 import { FeeRule } from '@/components/smart-template/fee-rules/types';
 import { modules } from '@/components/smart-template/fee-rules/config';
-import { FormData, ChannelFormProps, WaybillRule } from '@/components/channelTypes';
+import { FormData, ChannelFormProps, WaybillRule } from '@/components/channel/channelTypes';
 
 function SectionTitle({ title }: { title: string }) {
   return <h3 className="text-lg font-semibold text-gray-800 mb-4">{title}</h3>;

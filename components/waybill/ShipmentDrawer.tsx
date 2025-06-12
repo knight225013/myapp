@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
-import Input from '../ui/Input';
+import Input from '@/components/ui//Input';
 import TrackingTimeline from './TrackingTimeline';
 import { Shipment, Box } from '../../types/shipment';
 
@@ -99,6 +99,12 @@ export default function ShipmentDrawer({
   useEffect(() => {
     refreshShipment();
   }, [shipment.id]);
+
+  // 添加调试日志
+  useEffect(() => {
+    console.log('当前运单数据:', currentShipment);
+    console.log('渠道信息:', currentShipment.channel);
+  }, [currentShipment]);
 
   const handleClose = () => {
     setIsOpen(false);
@@ -233,7 +239,7 @@ export default function ShipmentDrawer({
       <div className="p-6 space-y-6">
         <div className="flex justify-between items-center border-b pb-4">
           <h2 className="text-lg font-semibold text-gray-700">
-            运单详情 <span className="gradient-text">#{currentShipment.id}</span>
+            运单详情 <span className="gradient-text">{currentShipment.waybillNumber || currentShipment.id}</span>
           </h2>
           <button onClick={handleClose}>
             <X className="w-6 h-6 text-gray-500 hover:text-gray-800" />
@@ -254,7 +260,7 @@ export default function ShipmentDrawer({
             </div>
             <div>
               <span className="text-gray-500 font-medium">运单号：</span>{' '}
-              {currentShipment.trackingNumber || '--'}
+              {currentShipment.waybillNumber || currentShipment.id || '--'}
             </div>
             <div>
               <span className="text-gray-500 font-medium">渠道：</span>{' '}

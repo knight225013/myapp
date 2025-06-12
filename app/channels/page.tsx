@@ -4,34 +4,12 @@ import Link from 'next/link';
 import ChannelTable from '@/components/channel/ChannelTable';
 import ChannelForm from '@/components/channel/ChannelForm';
 import ChannelEstimateTable from '@/components/channel/ChannelEstimateTable';
-import ExcelImportExport from '@/components/ExcelImportExport';
-import LabelTemplateEditor from '@/components/LabelTemplateEditor';
+import ExcelImportExport from '@/components/smart-template/ExcelImportExport';
+import LabelTemplateEditor from '@/components/smart-template/LabelTemplateEditor';
 import * as XLSX from 'xlsx';
-
-interface Channel {
-  id: string;
-  name: string;
-  type: string;
-  country?: string;
-  warehouse?: string;
-  origin?: string;
-  currency: string;
-  createdAt: string;
-  rates: Rate[];
-}
-
-interface Rate {
-  minWeight: number;
-  maxWeight: number;
-  weightType: string;
-  divisor?: number;
-  sideRule?: string;
-  extraFee?: number;
-  baseRate: number;
-  taxRate?: number;
-  otherFee?: number;
-  priority: number;
-}
+import type { Channel, Rate } from '@/types/shipment';
+import type { FeeRule } from '@/components/smart-template/fee-rules/types';
+import type { ExtraFeeRule } from '@/components/ExtraFeeRule/types';
 
 interface ChannelResponse {
   success: boolean;
@@ -54,8 +32,7 @@ export default function ChannelPage() {
   const [showChannelCreate, setShowChannelCreate] = useState(false);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
-  const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
-  const [showLabelEditor, setShowLabelEditor] = useState(false);
+const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);  const [showLabelEditor, setShowLabelEditor] = useState(false);
   const [templateChannelId, setTemplateChannelId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -144,7 +121,7 @@ export default function ChannelPage() {
         <ChannelTable
           channels={channels}
           onSelectChannel={(channel) => {
-            setSelectedChannel(channel);
+            setSelectedChannel(channel as Channel);
             setShowChannelCreate(true);
           }}
           onCreateTemplate={(channelId) => {
@@ -162,7 +139,99 @@ export default function ChannelPage() {
       <ChannelForm
         isOpen={showChannelCreate}
         onClose={handleClose}
-        initialData={selectedChannel}
+        initialData={selectedChannel ? {
+          id: selectedChannel.id,
+          name: selectedChannel.name,
+          code: selectedChannel.code || '',
+          type: selectedChannel.type,
+          country: selectedChannel.country,
+          warehouse: selectedChannel.warehouse,
+          origin: selectedChannel.origin,
+          currency: selectedChannel.currency,
+          decimal: selectedChannel.decimal,
+          method: selectedChannel.method,
+          rounding: selectedChannel.rounding,
+          compareMode: selectedChannel.compareMode,
+          volRatio: selectedChannel.volRatio,
+          cubeRatio: selectedChannel.cubeRatio,
+          splitRatio: selectedChannel.splitRatio,
+          chargeMethod: selectedChannel.chargeMethod,
+          minCharge: selectedChannel.minCharge,
+          ticketPrecision: selectedChannel.ticketPrecision,
+          boxPrecision: selectedChannel.boxPrecision,
+          sizePrecision: selectedChannel.sizePrecision,
+          minPieces: selectedChannel.minPieces,
+          maxPieces: selectedChannel.maxPieces,
+          minBoxRealWeight: selectedChannel.minBoxRealWeight,
+          minBoxMaterialWeight: selectedChannel.minBoxMaterialWeight,
+          minBoxChargeWeight: selectedChannel.minBoxChargeWeight,
+          minBoxAvgWeight: selectedChannel.minBoxAvgWeight,
+          minTicketChargeWeight: selectedChannel.minTicketChargeWeight,
+          maxTicketChargeWeight: selectedChannel.maxTicketChargeWeight,
+          minTicketRealWeight: selectedChannel.minTicketRealWeight,
+          maxTicketRealWeight: selectedChannel.maxTicketRealWeight,
+          minBoxRealWeightLimit: selectedChannel.minBoxRealWeightLimit,
+          maxBoxRealWeight: selectedChannel.maxBoxRealWeight,
+          minBoxChargeWeightLimit: selectedChannel.minBoxChargeWeightLimit,
+          maxBoxChargeWeight: selectedChannel.maxBoxChargeWeight,
+          minDeclareValue: selectedChannel.minDeclareValue,
+          maxDeclareValue: selectedChannel.maxDeclareValue,
+          aging: selectedChannel.aging,
+          waybillRule: selectedChannel.waybillRule,
+          labelCode: selectedChannel.labelCode,
+          assignedUser: selectedChannel.assignedUser,
+          userLevel: selectedChannel.userLevel,
+          declareCurrency: selectedChannel.declareCurrency,
+          defaultDeclareCurrency: selectedChannel.defaultDeclareCurrency,
+          sender: selectedChannel.sender,
+          showWeight: selectedChannel.showWeight || false,
+          showSize: selectedChannel.showSize || false,
+          requireWeight: selectedChannel.requireWeight || false,
+          requireSize: selectedChannel.requireSize || false,
+          requirePhone: selectedChannel.requirePhone || false,
+          requireEmail: selectedChannel.requireEmail || false,
+          requirePackingList: selectedChannel.requirePackingList || false,
+          verifySalesLink: selectedChannel.verifySalesLink || false,
+          verifyImageLink: selectedChannel.verifyImageLink || false,
+          requireVAT: selectedChannel.requireVAT || false,
+          requireVATFiling: selectedChannel.requireVATFiling || false,
+          requireEORI: selectedChannel.requireEORI || false,
+          enableBilling: selectedChannel.enableBilling || false,
+          showBilling: selectedChannel.showBilling || false,
+          controlBilling: selectedChannel.controlBilling || false,
+          controlReceivingFee: selectedChannel.controlReceivingFee || false,
+          promptUnderpayment: selectedChannel.promptUnderpayment || false,
+          modifyVolRatio: selectedChannel.modifyVolRatio || false,
+          showSupplierData: selectedChannel.showSupplierData || false,
+          orderBySKULibrary: selectedChannel.orderBySKULibrary || false,
+          allowCancel: selectedChannel.allowCancel || false,
+          noAutoCancelAPIFail: selectedChannel.noAutoCancelAPIFail || false,
+          allowChannelChange: selectedChannel.allowChannelChange || false,
+          allowEdit: selectedChannel.allowEdit || false,
+          allowTrackingEntry: selectedChannel.allowTrackingEntry || false,
+          allowLabelUpload: selectedChannel.allowLabelUpload || false,
+          hideCarrier: selectedChannel.hideCarrier || false,
+          refundOnReturn: selectedChannel.refundOnReturn || false,
+          noRefundOnCancel: selectedChannel.noRefundOnCancel || false,
+          showInWMS: selectedChannel.showInWMS || false,
+          enableCOD: selectedChannel.enableCOD || false,
+          restrictWarehouseCode: selectedChannel.restrictWarehouseCode || false,
+          roundBeforeSplit: selectedChannel.roundBeforeSplit || false,
+          feeRules: (selectedChannel.extraFeeRules || []).map((rule: ExtraFeeRule): FeeRule => ({
+            id: rule.id,
+            module: 'extra',
+            type: rule.feeType,
+            name: rule.name,
+            params: {
+              price: rule.value,
+              chargeUnit: rule.feeType === 'perKg' ? 'kg' : 'box',
+              field: 'weight',
+              label: rule.name
+            },
+            currency: rule.currency
+          })),
+          rates: selectedChannel.rates || []
+        } : undefined}
         onSubmitSuccess={() => {
           handleClose();
           fetchChannels();
@@ -184,8 +253,7 @@ export default function ChannelPage() {
             name: '',
             content: '<div>{{waybillNumber}}</div>',
             width: 100,
-            height: 50,
-            channelId: templateChannelId || undefined,
+            height: 50
           }}
         />
       )}

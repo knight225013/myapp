@@ -1,24 +1,25 @@
 // page.tsx
 'use client';
-import StatusSwitcher from '@/components/StatusSwitcher';
+import StatusSwitcher from '@/components/ui/StatusSwitcher';
 import { useState, useEffect } from 'react';
-import ShipmentTable from '@/components/ShipmentTable';
-import MultiStepShipmentForm from '@/components/MultiStepShipmentForm';
-import FilterPanel from '@/components/FilterPanel';
-import ShipmentDrawer from '@/components/ShipmentDrawer';
-import ShipmentEditForm from '@/components/ShipmentEditForm';
-import ExcelImportPanel from '@/components/ExcelImportPanel';
-import FieldMatchManager from '@/components/FieldMatchManager'; // 替换为 FieldMatchManager
-import FieldMatchEditor from '@/components/FieldMatchEditor';
-import ExcelFieldMapper from '@/components/ExcelFieldMapper';
-import ShipmentPreviewConfirm from '@/components/ShipmentPreviewConfirm';
-import UploadLabelForm from '@/components/UploadLabelForm';
+import ShipmentTable from '@/components/waybill/ShipmentTable';
+import MultiStepShipmentForm from '@/components/waybill/MultiStepShipmentForm';
+import FilterPanel from '@/components/finance/FilterPanel';
+import ShipmentDrawer from '@/components/waybill/ShipmentDrawer';
+import ShipmentEditForm from '@/components/waybill/ShipmentEditForm';
+import ExcelImportPanel from '@/components/smart-template/ExcelImportPanel';
+import FieldMatchManager from '@/components/waybill/FieldMatchManager'; // 替换为 FieldMatchManager
+import FieldMatchEditor from '@/components/waybill/FieldMatchEditor';
+import ExcelFieldMapper from '@/components/smart-template/ExcelFieldMapper';
+import ShipmentPreviewConfirm from '@/components/waybill/ShipmentPreviewConfirm';
+import UploadLabelForm from '@/components/smart-template/UploadLabelForm';
 import { Package, CheckCircle, Truck, AlertCircle } from 'lucide-react';
 import { Filters } from '@/types/filters';
 import { Shipment } from '@/types/shipment';
 import { parseExcel, parseCellKey } from '@/utils/parseExcelGeneric';
 import { cleanImportRecord } from '@/utils/cleanImportRecord';
 import * as XLSX from 'xlsx';
+import WaveInput from '@/components/ui/WaveInput';
 
 type TemplateMode = 'grid' | 'directional' | 'fixed';
 
@@ -35,7 +36,7 @@ interface TemplateInfo {
   mode: TemplateMode;
   type: 'FBA' | '传统';
   startRow: number;
-  bindings?: string | FieldAreaBinding[];
+  bindings?: FieldAreaBinding[];
   columns?: string[];
   filePath?: string;
 }
@@ -100,6 +101,7 @@ export default function WaybillPage() {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [channels, setChannels] = useState<Channel[]>([]);
   const [selectedChannel, setSelectedChannel] = useState('');
+  const [searchType, setSearchType] = useState<'waybillNumber'|'country'|'recipient'|'client'|'trackingNumber'>('waybillNumber');
 
   const statusButtons = [
     { label: '全部', status: '全部' },
@@ -442,8 +444,34 @@ export default function WaybillPage() {
     }
   };
 
-  const handleFilterChange = (newFilters: Filters) => {
-    setFilters(newFilters);
+  const handleWaveInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFilters(prev => ({
+      ...prev,
+      waybillNumber: searchType === 'waybillNumber' ? value : '',
+      country: searchType === 'country' ? value : '',
+      recipient: searchType === 'recipient' ? value : '',
+      client: searchType === 'client' ? value : '',
+      trackingNumber: searchType === 'trackingNumber' ? value : '',
+    }));
+  };
+
+  const handleWaveSearch = () => {
+    setCurrentPage(1);
+    fetchWaybills();
+  };
+
+  const handleWaveReset = () => {
+    setFilters({
+      status: '',
+      country: '',
+      channel: '',
+      waybillNumber: '',
+      client: '',
+      date: '',
+      trackingNumber: '',
+      recipient: '',
+    });
     setCurrentPage(1);
   };
 
@@ -473,51 +501,81 @@ export default function WaybillPage() {
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="info-card p-6 flex items-center justify-between">
-          <div>
-            <p className="text-gray-500 text-sm">总运单数</p>
-            <p className="text-2xl font-semibold text-gray-800">{statusCounts['全部'] || 0}</p>
+      {/* 状态切换条 */}
+      <section className="glass rounded-3xl shadow-xl p-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <StatusSwitcher
+          statusButtons={statusButtons.map((btn) => ({
+            ...btn,
+            label: `${btn.label} (${statusCounts[btn.status] || 0})`,
+          }))}
+          selectedStatus={selectedStatus}
+          onChange={handleStatusClick}
+          buttonClassName="text-sm font-medium px-4 py-2 text-gray-600 hover:text-[#ff8a00] focus:outline-none focus:ring-0"
+          activeClassName="text-[#5b3d00] font-bold bg-transparent focus:outline-none focus:ring-0"
+        />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full md:w-auto mt-2 md:mt-0">
+          <div className="info-card p-4 flex flex-col items-center justify-center">
+            <span className="text-gray-500 text-xs">总运单数</span>
+            <span className="text-xl font-bold text-gray-800">{statusCounts['全部'] || 0}</span>
           </div>
-          <Package className="w-8 h-8 text-indigo-600" />
-        </div>
-        <div className="info-card p-6 flex items-center justify-between">
-          <div>
-            <p className="text-gray-500 text-sm">已签收</p>
-            <p className="text-2xl font-semibold text-gray-800">{statusCounts['已签收'] || 0}</p>
+          <div className="info-card p-4 flex flex-col items-center justify-center">
+            <span className="text-gray-500 text-xs">已签收</span>
+            <span className="text-xl font-bold text-green-600">{statusCounts['已签收'] || 0}</span>
           </div>
-          <CheckCircle className="w-8 h-8 text-green-600" />
-        </div>
-        <div className="info-card p-6 flex items-center justify-between">
-          <div>
-            <p className="text-gray-500 text-sm">运输中</p>
-            <p className="text-2xl font-semibold text-gray-800">{statusCounts['转运中'] || 0}</p>
+          <div className="info-card p-4 flex flex-col items-center justify-center">
+            <span className="text-gray-500 text-xs">运输中</span>
+            <span className="text-xl font-bold text-blue-600">{statusCounts['转运中'] || 0}</span>
           </div>
-          <Truck className="w-8 h-8 text-blue-600" />
-        </div>
-        <div className="info-card p-6 flex items-center justify-between">
-          <div>
-            <p className="text-gray-500 text-sm">异常件数</p>
-            <p className="text-2xl font-semibold text-gray-800">
-              {(statusCounts['已取消'] || 0) + (statusCounts['退件'] || 0)}
-            </p>
+          <div className="info-card p-4 flex flex-col items-center justify-center">
+            <span className="text-gray-500 text-xs">异常件数</span>
+            <span className="text-xl font-bold text-red-600">{(statusCounts['已取消'] || 0) + (statusCounts['退件'] || 0)}</span>
           </div>
-          <AlertCircle className="w-8 h-8 text-red-600" />
         </div>
-      </div>
-      <FilterPanel onFilterChange={handleFilterChange} />
+      </section>
+      {/* 搜索栏 */}
       <section className="glass rounded-3xl shadow-xl p-8 mb-8">
-        <div className="relative w-full overflow-hidden">
-          <StatusSwitcher
-            statusButtons={statusButtons.map((btn) => ({
-              ...btn,
-              label: `${btn.label} (${statusCounts[btn.status] || 0})`,
-            }))}
-            selectedStatus={selectedStatus}
-            onChange={handleStatusClick}
-            buttonClassName="text-sm font-medium px-4 py-2 text-gray-600 hover:text-[#ff8a00] focus:outline-none focus:ring-0"
-            activeClassName="text-[#5b3d00] font-bold bg-transparent focus:outline-none focus:ring-0"
+        <div className="flex flex-col md:flex-row md:items-center gap-4 mb-6">
+          <WaveInput
+            label={
+              searchType === 'waybillNumber' ? '运单号' :
+              searchType === 'country' ? '国家' :
+              searchType === 'recipient' ? '收件人' :
+              searchType === 'client' ? '客户单号' :
+              searchType === 'trackingNumber' ? '转单号' : ''
+            }
+            value={
+              searchType === 'waybillNumber' ? filters.waybillNumber :
+              searchType === 'country' ? filters.country :
+              searchType === 'recipient' ? filters.recipient :
+              searchType === 'client' ? filters.client :
+              searchType === 'trackingNumber' ? filters.trackingNumber : ''
+            }
+            onChange={handleWaveInputChange}
+            style={{ width: 240 }}
           />
+          <select
+            value={searchType}
+            onChange={e => setSearchType(e.target.value as any)}
+            className="border rounded-md px-3 py-2"
+          >
+            <option value="waybillNumber">运单号</option>
+            <option value="country">国家</option>
+            <option value="recipient">收件人</option>
+            <option value="client">客户单号</option>
+            <option value="trackingNumber">转单号</option>
+          </select>
+          <button
+            className="gradient-btn text-white px-8 py-4 h-12 rounded-2xl transition transform hover-glow shadow-md whitespace-nowrap"
+            onClick={handleWaveSearch}
+          >
+            搜索
+          </button>
+          <button
+            className="border border-gray-300 text-gray-500 px-8 py-4 h-12 rounded-2xl hover:bg-gray-100 transition transform hover-glow whitespace-nowrap"
+            onClick={handleWaveReset}
+          >
+            重置
+          </button>
         </div>
         <div className="flex flex-wrap gap-4 mt-6">
           <button className="btn-create" onClick={() => setShowCreatePanel(true)}>
@@ -547,7 +605,7 @@ export default function WaybillPage() {
               ))}
             </select>
             <UploadLabelForm
-              channelId={selectedChannel}
+              channelId={selectedChannel || ''}
               channels={channels}
               onChangeChannelId={setSelectedChannel}
               onUpload={handleUploadLabel}

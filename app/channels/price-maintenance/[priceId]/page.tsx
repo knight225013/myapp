@@ -1,20 +1,43 @@
+'use client';
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import { PriceDetailHeader } from '@/components/finance/PriceDetailHeader';
-import { PriceSettingList } from '@/components/finance/PriceSettingList';
+import { PriceSettingList } from '@/components/price/PriceSettingList';
 import Link from 'next/link';
 
-export default async function PriceDetail({ params }: { params: { priceId: string } }) {
-  const [priceRes, settingsRes] = await Promise.all([
-    fetch(`/api/finance/prices/${params.priceId}`, { cache: 'no-store' }),
-    fetch(`/api/finance/prices/${params.priceId}/settings`, { cache: 'no-store' }),
-  ]);
-  if (!priceRes.ok || !settingsRes.ok) throw new Error('Failed to fetch price or settings');
-  const price = await priceRes.json();
-  const settings = await settingsRes.json();
+export default function PriceDetailPage() {
+  const { priceId } = useParams();
+  const [price, setPrice] = useState<any>(null);
+  const [settings, setSettings] = useState([]);
+
+  useEffect(() => {
+    fetchPrice();
+    fetchSettings();
+  }, [priceId]);
+
+  const fetchPrice = async () => {
+    const res = await fetch(`/api/finance/prices/${priceId}`);
+    if (res.ok) {
+      const data = await res.json();
+      setPrice(data.data);
+    }
+  };
+
+  const fetchSettings = async () => {
+    const res = await fetch(`/api/finance/prices/${priceId}/settings`);
+    if (res.ok) {
+      const data = await res.json();
+      setSettings(data.data);
+    }
+  };
+
+  if (!price) return <div>加载中...</div>;
+
   return (
-    <div>
+    <div className="container mx-auto p-4">
       <PriceDetailHeader price={price} />
       <PriceSettingList settings={settings} />
-      <Link href={`/channels/price-maintenance/${params.priceId}/import`}>批量导入</Link>
+      <Link href={`/channels/price-maintenance/${priceId}/import`}>批量导入</Link>
     </div>
   );
 }

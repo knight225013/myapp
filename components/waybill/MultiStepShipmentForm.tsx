@@ -3,10 +3,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
-import Input from './Input';
-import SearchableSelect from './SearchableSelect';
-import Checkbox from './Checkbox';
-import { applyChannelRules } from '../utils/channelCalc';
+import Input from '@/components/ui/Input';
+import SearchableSelect from '@/components/ui/SearchableSelect';
+import Checkbox from '@/components/ui/Checkbox';
+import { applyChannelRules } from '@/utils/channelCalc';
 import { useSearchParams } from 'next/navigation';
 interface Channel {
   id: string;

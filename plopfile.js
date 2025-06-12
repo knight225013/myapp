@@ -1,39 +1,45 @@
 module.exports = function (plop) {
-  plop.setGenerator('module', {
-    description: '生成一个业务模块（页面 + 表单 + 控制器 + 路由）',
+  plop.setGenerator('price', {
+    description: '生成价格管理模块',
     prompts: [
       {
-        type: 'input',
-        name: 'name',
-        message: '请输入模块名称（如：demo、waybill、channel）',
-      },
+        type: 'confirm',
+        name: 'confirm',
+        message: '是否生成价格管理模块？',
+        default: true
+      }
     ],
     actions: [
       {
         type: 'add',
-        path: 'app/{{name}}/page.tsx',
-        templateFile: 'plop-templates/page.hbs',
-        skipIfExists: true, // 已存在就跳过
-      },
-      {
-        type: 'add',
-        path: 'components/{{name}}/Form.tsx',
-        templateFile: 'plop-templates/form.hbs',
-        skipIfExists: true,
-      },
-      {
-        type: 'add',
-        path: 'api/controllers/{{name}}Controller.js',
+        path: 'api/controllers/priceController.js',
         templateFile: 'plop-templates/controller.hbs',
-        skipIfExists: true,
+        skipIfExists: true
       },
       {
         type: 'add',
-        path: 'api/routes/{{name}}Routes.js',
+        path: 'api/routes/priceRoutes.js',
         templateFile: 'plop-templates/route.hbs',
-        skipIfExists: true,
+        skipIfExists: true
       },
-    ],
+      {
+        type: 'add',
+        path: 'components/price/Form.tsx',
+        templateFile: 'plop-templates/form.hbs',
+        skipIfExists: true
+      },
+      {
+        type: 'add',
+        path: 'app/channels/price-maintenance/create/page.tsx',
+        templateFile: 'plop-templates/create-page.hbs',
+        skipIfExists: true
+      },
+      {
+        type: 'add',
+        path: 'app/channels/price-maintenance/[priceId]/page.tsx',
+        templateFile: 'plop-templates/edit-page.hbs',
+        skipIfExists: true
+      }
+    ]
   });
-  plop.setHelper('componentTag', (name) => `<${name}Form />`);
 };

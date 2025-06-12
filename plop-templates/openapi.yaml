@@ -1,28 +1,36 @@
-openapi: 3.0.0
-info:
-  title: Waybill API
-  version: 1.0.0
-paths:
-  /api/waybill:
-    post:
-      summary: Create a waybill
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Waybill'
-      responses:
-        '201':
-          description: Created
 components:
   schemas:
-    Waybill:
+    Price:
       type: object
       properties:
-        recipient:
+        id:
           type: string
-        country:
+        name:
           type: string
-      required:
-        - recipient
-        - country
+        currency:
+          type: string
+        channelId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [name, channelId, currency]
+
+    PriceSetting:
+      type: object
+      properties:
+        id:
+          type: string
+        priceId:
+          type: string
+        feeType:
+          type: string
+        value:
+          type: number
+        expression:
+          type: array
+          items:
+            type: object
+        note:
+          type: string
+      required: [priceId, feeType, value]

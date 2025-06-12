@@ -1,5 +1,0 @@
-{
-  "c": ["app/layout", "app/channels/page", "webpack"],
-  "r": [],
-  "m": ["(app-pages-browser)/./components/smart-template/fee-rules/fee-forms/FixedFeeForm.tsx"]
-}

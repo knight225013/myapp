@@ -34,7 +34,7 @@ export function BulkPriceImportTable({ priceId }: BulkPriceImportTableProps) {
       return;
     }
     try {
-      const res = await fetch(`/api/finance/prices/${priceId}/settings/import`, {
+      const res = await fetch(`http://localhost:3000/api/finance/prices/${priceId}/settings/import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),

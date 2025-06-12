@@ -9,6 +9,7 @@ export default function Sidebar() {
   const [isMobile, setIsMobile] = useState(false);
 
   const navItems = [
+    { id: 'dashboard', label: '首页', icon: 'fas fa-home', href: '/' },
     { id: 'shipment', label: '运单管理', icon: 'fas fa-box', href: '/waybill' },
     { id: 'finance', label: '财务系统', icon: 'fas fa-credit-card', href: '/finance' },
     { id: 'report', label: '数据报表', icon: 'fas fa-chart-bar', href: '/reports' },

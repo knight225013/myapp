@@ -1,6 +1,6 @@
 'use client';
 
-import FbaShipmentForm from './FbaShipmentForm';
+import FbaShipmentForm from './ShipmentForm';
 
 export default function CreateShipmentPanel({
   isOpen,

@@ -1,9 +1,6 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/channels/page": "app/channels/page.js",
-  "/waybill/page": "app/waybill/page.js",
-  "/smart-template/page": "app/smart-template/page.js",
+  "/page": "app/page.js",
   "/finance/page": "app/finance/page.js",
-  "/smart-template/apply/page": "app/smart-template/apply/page.js",
-  "/clients/page": "app/clients/page.js"
+  "/clients/page": "app/clients/page.js",
+  "/waybill/page": "app/waybill/page.js"
 }

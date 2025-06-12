@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
-import Input from './Input';
-import SearchableSelect from './SearchableSelect';
-import Checkbox from './Checkbox';
-import MultiCheckbox from './MultiCheckbox';
-import Textarea from './Textarea';
-import Radio from './Radio';
-import { applyChannelRules } from '../utils/channelCalc';
+import Input from '@/components/ui/Input';
+import SearchableSelect from '@/components/ui/SearchableSelect';
+import Checkbox from '@/components/ui/Checkbox';
+import MultiCheckbox from '@/components/ui/MultiCheckbox';
+import Textarea from '@/components/ui/Textarea';
+import Radio from '@/components/ui/Radio';
+import { applyChannelRules } from '@/utils/channelCalc';
 
 // 表单数据类型
 type FormData = {

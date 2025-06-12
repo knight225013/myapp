@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import Input from '../ui/Input';
-import SearchableSelect from '../SearchableSelect';
-import MultiCheckbox from '../MultiCheckbox';
-import Textarea from '../Textarea';
-import Radio from '../Radio';
+import SearchableSelect from '@/components/ui/SearchableSelect';
+import MultiCheckbox from '@/components/ui/MultiCheckbox';
+import Textarea from '@/components/ui/Textarea';
+import Radio from '@/components/ui/Radio';
 import { Shipment } from '../../types/shipment';
 
 export default function ShipmentEditForm({

@@ -1,16 +1,32 @@
+// components/smart-template/fee-rules/FeeRuleCardList.tsx
+
+'use client';
+
 import { useState, useMemo, useCallback } from 'react';
-import { FeeRule } from './types';
 import { X } from 'lucide-react';
+import { FeeRule } from './types';
 import { modules } from './config';
 
 interface Props {
+  /** 要展示的规则列表 */
   rules: FeeRule[];
+  /** 删除某条规则时调用 */
   onDelete: (id: string) => void;
+  /** 更新某条规则时调用 */
   onUpdate: (updatedRule: FeeRule) => void;
+  /** 每种规则类型对应的表单组件 */
   formComponents: Record<string, React.ComponentType<any>>;
+  /** 如果为 true，点击卡片不展开编辑表单，仅作静态展示 */
+  readOnly?: boolean;
 }
 
-export default function FeeRuleCardList({ rules, onDelete, onUpdate, formComponents }: Props) {
+export default function FeeRuleCardList({
+  rules,
+  onDelete,
+  onUpdate,
+  formComponents,
+  readOnly = false,
+}: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const unitMap: Record<string, string> = {
@@ -24,36 +40,32 @@ export default function FeeRuleCardList({ rules, onDelete, onUpdate, formCompone
     const p = rule.params;
     if (p?.field && typeof p.min === 'number' && typeof p.price === 'number') {
       const chargeUnitCn = p.chargeUnit ? (unitMap[p.chargeUnit] ?? p.chargeUnit) : '';
-      const conditionUnitCn = p.conditionUnit ? (unitMap[p.conditionUnit] ?? p.conditionUnit) : '';
+      const conditionUnitCn = p.conditionUnit
+        ? (unitMap[p.conditionUnit] ?? p.conditionUnit)
+        : '';
       const min = p.min;
       const max = p.max !== undefined ? p.max : '∞';
       return `${rule.name}：${min}~${max}${conditionUnitCn}，收取费用：${p.price}元/${chargeUnitCn}`;
     }
-    return rule.params?.label || rule.name || '未知规则';
+    return p?.label || rule.name || '未知规则';
   };
 
   const getFormProps = (rule: FeeRule) => {
     const module = modules.find((m) => m.id === rule.module);
-    const type = module?.types.find((t) => t.id === rule.type);
-    const formProps = type && 'formProps' in type ? type.formProps : {};
-    console.log('getFormProps:', { rule, module, type, formProps });
+    const typeInfo = module?.types.find((t) => t.id === rule.type);
+    const formProps = typeInfo && 'formProps' in typeInfo ? typeInfo.formProps : {};
     return formProps;
   };
 
   const handleUpdate = useCallback(
     (updatedRule: FeeRule) => {
-      if (!updatedRule?.id || !updatedRule?.type) {
-        console.error('Invalid updated rule:', updatedRule);
-        return;
-      }
       onUpdate(updatedRule);
       setExpandedId(null);
     },
-    [onUpdate],
+    [onUpdate]
   );
 
   if (!Array.isArray(rules)) {
-    console.error('Rules is not an array:', rules);
     return <div className="text-red-600">规则数据无效</div>;
   }
 
@@ -61,16 +73,19 @@ export default function FeeRuleCardList({ rules, onDelete, onUpdate, formCompone
     return rules.map((rule) => {
       const FormComponent = formComponents[rule.type];
       const formProps = getFormProps(rule);
-      if (!FormComponent) {
-        console.warn(`Form component not found for rule type: ${rule.type}`, rule);
-      }
-      console.log('rule:', rule, 'FormComponent:', FormComponent, 'formProps:', formProps);
+
       return (
         <div
           key={rule.id}
           className="border p-3 mb-3 rounded bg-white relative hover:shadow-md transition"
           style={{ minWidth: '300px', maxWidth: '320px', flex: '1 1 calc(33.333% - 1rem)' }}
+          onClick={() => {
+            if (!readOnly) {
+              setExpandedId(expandedId === rule.id ? null : rule.id);
+            }
+          }}
         >
+          {/* 删除按钮 */}
           <button
             className="absolute top-2 right-2 text-red-400 hover:text-red-600 z-10"
             onClick={(e) => {
@@ -80,14 +95,15 @@ export default function FeeRuleCardList({ rules, onDelete, onUpdate, formCompone
           >
             <X size={16} />
           </button>
-          <div
-            className="cursor-pointer"
-            onClick={() => setExpandedId(expandedId === rule.id ? null : rule.id)}
-          >
+
+          {/* 规则摘要 */}
+          <div className="cursor-pointer">
             <div className="font-medium">{rule.name}</div>
             <div className="text-sm text-gray-600 mt-1">详情: {getSummary(rule)}</div>
           </div>
-          {expandedId === rule.id && FormComponent ? (
+
+          {/* 编辑表单，仅在非 readOnly 模式且展开时显示 */}
+          {!readOnly && expandedId === rule.id && FormComponent && (
             <div className="mt-2 p-1">
               <FormComponent
                 key={rule.id}
@@ -98,16 +114,15 @@ export default function FeeRuleCardList({ rules, onDelete, onUpdate, formCompone
                 onClose={() => setExpandedId(null)}
               />
             </div>
-          ) : expandedId === rule.id ? (
+          )}
+          {/* 展开但找不到表单组件时的提示 */}
+          {!readOnly && expandedId === rule.id && !FormComponent && (
             <div className="mt-2 text-red-600">表单组件未找到</div>
-          ) : null}
+          )}
         </div>
       );
     });
-  }, [rules, expandedId, formComponents, onDelete, handleUpdate]);
-
-  console.log('formComponents:', formComponents);
-  console.log('rules:', rules);
+  }, [rules, expandedId, formComponents, onDelete, handleUpdate, readOnly]);
 
   return (
     <div className="w-full flex-1 border-l p-4 bg-gray-50 overflow-auto">

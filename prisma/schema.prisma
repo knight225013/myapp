@@ -147,6 +147,7 @@ model Customer {
   createdAt DateTime   @default(now()) // 创建时间
   tenant    Tenant     @relation(fields: [tenantId], references: [id]) // 关联租户
   fbaOrders FBAOrder[] @relation("Sender") // 关联的发件运单
+  orders    FBAOrder[] @relation("Customer") // 业务客户的运单
 }
 
 // FBA 运单表
@@ -168,8 +169,10 @@ model FBAOrder {
   createdAt           DateTime      @default(now()) // 创建时间
   tenantId            String // 租户 ID
   tenant              Tenant        @relation(fields: [tenantId], references: [id]) // 关联租户
-  customerId          String // 客户 ID
-  customer            User?         @relation(fields: [customerId], references: [id], onDelete: Cascade) // 关联客户
+  customerId          String // 业务客户ID
+  customer            Customer      @relation("Customer", fields: [customerId], references: [id], onDelete: Cascade) // 业务客户
+  userId              String // 操作人ID
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade) // 操作人
   type                String // 运单类型
   warehouse           String? // 入仓仓库
   length              Float? // 长度（cm）
@@ -339,6 +342,7 @@ model Channel {
   carrierId               String? // 物流商 ID
   carrier                 Carrier?         @relation(fields: [carrierId], references: [id]) // 关联物流商
   transportPrices         TransportPrice[] @relation(name: "TransportPriceToChannel") // 关联运价
+  prices                  Price[]
 }
 
 // 计费规则模型
@@ -418,10 +422,24 @@ model TransportPrice {
 
 // 运价设置（时段）
 model PriceSetting {
-  id        String         @id @default(uuid()) // 运价设置唯一标识
-  priceId   String // 运价 ID
-  price     TransportPrice @relation(fields: [priceId], references: [id]) // 关联运价
-  period    String // 生效时段
-  rate      Float // 费率
-  createdAt DateTime       @default(now()) // 创建时间
+  id        String   @id @default(uuid())
+  priceId   String
+  name      String
+  unit      String?
+  value     Float
+  createdAt DateTime @default(now())
+
+  price     Price    @relation(fields: [priceId], references: [id])
+  transportPrice   TransportPrice? @relation(fields: [transportPriceId], references: [id])
+  transportPriceId String?
+}
+
+model Price {
+  id         String   @id @default(uuid())
+  name       String
+  channelId  String
+  currency   String
+  createdAt  DateTime @default(now())
+  settings   PriceSetting[]
+  channel    Channel  @relation(fields: [channelId], references: [id])
 }

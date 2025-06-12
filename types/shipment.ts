@@ -132,6 +132,8 @@ export interface Channel {
 
 export type Shipment = {
   id: string;
+  waybillNumber?: string;
+  channelName?: string;
   type: 'FBA' | '傳統';
   channel?: Channel;
   recipient: string;

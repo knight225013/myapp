@@ -17,10 +17,10 @@ const upload = multer({ storage });
 // 运单路由
 router.get('/stats', waybillController.getStats);
 router.get('/', waybillController.getWaybills);
-router.post('/', waybillController.createWaybill);
+router.post('/', waybillController.createWaybillHandler);
 router.get('/:id', waybillController.getWaybillById);
 router.get('/:id/summary', waybillController.getSummary);
-router.put('/:id', waybillController.updateShipment);
+router.put('/:id', waybillController.updateShipmentHandler);
 router.put('/boxes/:id', waybillController.updateBox);
 router.get('/fba/:id/logs', waybillController.getLogs);
 router.post('/fba/:id/logs', waybillController.addLog);

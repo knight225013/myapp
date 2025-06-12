@@ -1,5 +1,9 @@
-// plop-templates/route.hbs const express = require("express"); const router = express.Router();
-const { create{{properCase name}}
-} = require("../controllers/{{name}}Controller"); router.post("/", create{{properCase name}}); //
-TODO: 加上 GET/PUT/DELETE 等路由 // router.get("/", getAll{{properCase name}}); //
-router.get("/:id", get{{properCase name}}ById); // … module.exports = router;
+const express = require("express");
+const router = express.Router();
+const priceController = require("../controllers/priceController");
+
+router.post("/", priceController.createPrice);
+router.get("/", priceController.getAllPrice);
+router.get("/:priceId", priceController.getPriceById);
+
+module.exports = router;

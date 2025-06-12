@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { Filters } from '../types/filters';
+import { Filters } from '@/types/filters';
 import { ChevronDown } from 'lucide-react';
 
 type FilterPanelProps = {
@@ -21,6 +21,8 @@ export default function FilterPanel({ onFilterChange }: FilterPanelProps) {
     waybillNumber: '',
     client: '',
     date: '',
+    trackingNumber: '',
+    recipient: '',
   });
   const [channels, setChannels] = useState<Channel[]>([]); // 动态渠道列表
   const [loading, setLoading] = useState(false); // 加载状态
@@ -28,6 +30,7 @@ export default function FilterPanel({ onFilterChange }: FilterPanelProps) {
   const [showChannelDropdown, setShowChannelDropdown] = useState(false);
   const countryRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<HTMLDivElement>(null);
+  const [searchType, setSearchType] = useState('waybillNumber'); // 当前搜索类型
 
   const countries = ['中国', '日本', '韩国', '美国', '德国', '越南', '马来西亚'];
 
@@ -52,15 +55,6 @@ export default function FilterPanel({ onFilterChange }: FilterPanelProps) {
     fetchChannels();
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFilters((prev) => {
-      const newFilters = { ...prev, [name]: value };
-      onFilterChange(newFilters);
-      return newFilters;
-    });
-  };
-
   const handleSearch = () => {
     onFilterChange(filters);
   };
@@ -73,6 +67,8 @@ export default function FilterPanel({ onFilterChange }: FilterPanelProps) {
       waybillNumber: '',
       client: '',
       date: '',
+      trackingNumber: '',
+      recipient: '',
     };
     setFilters(newFilters);
     onFilterChange(newFilters);
@@ -92,131 +88,107 @@ export default function FilterPanel({ onFilterChange }: FilterPanelProps) {
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
+  const handleSearchTypeChange = (type: string) => {
+    setSearchType(type);
+    // 清空其他搜索字段
+    const newFilters = { ...filters };
+    Object.keys(newFilters).forEach(key => {
+      if (key !== 'status' && key !== 'date') {
+        newFilters[key as keyof Filters] = '';
+      }
+    });
+    setFilters(newFilters);
+  };
+
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const newFilters = { ...filters };
+    
+    // 根据当前搜索类型更新对应的字段
+    switch (searchType) {
+      case 'waybillNumber':
+        newFilters.waybillNumber = value;
+        break;
+      case 'country':
+        newFilters.country = value;
+        break;
+      case 'recipient':
+        newFilters.recipient = value;
+        break;
+      case 'client':
+        newFilters.client = value;
+        break;
+      case 'trackingNumber':
+        newFilters.trackingNumber = value;
+        break;
+    }
+    
+    setFilters(newFilters);
+  };
+
   return (
     <section className="glass rounded-3xl shadow-xl p-10 mb-8">
       <h2 className="text-xl font-semibold text-gray-800 mb-6">筛选条件</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-        <div className="relative">
-          <input
-            type="text"
-            name="waybillNumber"
-            placeholder="运单号"
-            value={filters.waybillNumber}
-            onChange={handleChange}
-            className="form-input-style"
-          />
-        </div>
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="转单号"
-            className="form-input-style"
-            onChange={(e) => setFilters((prev) => ({ ...prev, trackingNumber: e.target.value }))}
-          />
-        </div>
-        <div className="relative w-full" ref={countryRef}>
-          <div
-            className="form-input-style flex items-center"
-            onClick={() => setShowCountryDropdown(!showCountryDropdown)}
-          >
+      <div className="flex flex-col space-y-6">
+        <div className="flex items-center space-x-4">
+          <div className="wave-group">
             <input
+              required
               type="text"
-              name="country"
-              placeholder="搜索国家"
-              value={filters.country}
-              onChange={handleChange}
-              className="w-full focus:outline-none text-sm"
-              autoComplete="off"
+              className="input"
+              value={filters[searchType as keyof Filters] || ''}
+              onChange={handleSearchInputChange}
             />
-            <ChevronDown className="w-4 h-4 text-gray-400 ml-2" />
+            <span className="bar"></span>
+            <label className="label">
+              {searchType === 'waybillNumber' && (
+                <>
+                  <span className="label-char" style={{ '--index': 0 } as any}>运</span>
+                  <span className="label-char" style={{ '--index': 1 } as any}>单</span>
+                  <span className="label-char" style={{ '--index': 2 } as any}>号</span>
+                </>
+              )}
+              {searchType === 'country' && (
+                <>
+                  <span className="label-char" style={{ '--index': 0 } as any}>国</span>
+                  <span className="label-char" style={{ '--index': 1 } as any}>家</span>
+                </>
+              )}
+              {searchType === 'recipient' && (
+                <>
+                  <span className="label-char" style={{ '--index': 0 } as any}>收</span>
+                  <span className="label-char" style={{ '--index': 1 } as any}>件</span>
+                  <span className="label-char" style={{ '--index': 2 } as any}>人</span>
+                </>
+              )}
+              {searchType === 'client' && (
+                <>
+                  <span className="label-char" style={{ '--index': 0 } as any}>客</span>
+                  <span className="label-char" style={{ '--index': 1 } as any}>户</span>
+                  <span className="label-char" style={{ '--index': 2 } as any}>单</span>
+                  <span className="label-char" style={{ '--index': 3 } as any}>号</span>
+                </>
+              )}
+              {searchType === 'trackingNumber' && (
+                <>
+                  <span className="label-char" style={{ '--index': 0 } as any}>转</span>
+                  <span className="label-char" style={{ '--index': 1 } as any}>单</span>
+                  <span className="label-char" style={{ '--index': 2 } as any}>号</span>
+                </>
+              )}
+            </label>
           </div>
-          <div className={`dropdown ${showCountryDropdown ? '' : 'hidden'}`}>
-            <ul className="dropdown-list text-sm">
-              {countries.map((country) => (
-                <li
-                  key={country}
-                  className="px-4 py-2 cursor-pointer hover:bg-gray-100"
-                  onClick={() => {
-                    setFilters((prev) => ({ ...prev, country }));
-                    setShowCountryDropdown(false);
-                  }}
-                >
-                  {country}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-        <div className="relative w-full" ref={channelRef}>
-          <div
-            className="form-input-style flex items-center"
-            onClick={() => setShowChannelDropdown(!showChannelDropdown)}
+          <select
+            value={searchType}
+            onChange={(e) => handleSearchTypeChange(e.target.value)}
+            className="border rounded-md px-3 py-2"
           >
-            <input
-              type="text"
-              name="channel"
-              placeholder="搜索渠道"
-              value={filters.channel}
-              onChange={handleChange}
-              className="w-full focus:outline-none text-sm"
-              autoComplete="off"
-            />
-            <ChevronDown className="w-4 h-4 text-gray-400 ml-2" />
-          </div>
-          <div className={`dropdown ${showChannelDropdown ? '' : 'hidden'}`}>
-            {loading ? (
-              <div className="px-4 py-2 text-sm text-gray-500">加载中...</div>
-            ) : channels.length === 0 ? (
-              <div className="px-4 py-2 text-sm text-gray-500">无可用渠道</div>
-            ) : (
-              <ul className="dropdown-list text-sm">
-                {channels.map((channel) => (
-                  <li
-                    key={channel.id}
-                    className="px-4 py-2 cursor-pointer hover:bg-gray-100"
-                    onClick={() => {
-                      setFilters((prev) => ({ ...prev, channel: channel.name }));
-                      setShowChannelDropdown(false);
-                    }}
-                  >
-                    {channel.name}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-        <div className="relative w-full">
-          <input
-            type="text"
-            name="date"
-            placeholder="下单日期"
-            onFocus={(e) => (e.target.type = 'date')}
-            onBlur={(e) => {
-              if (!e.target.value) e.target.type = 'text';
-            }}
-            value={filters.date}
-            onChange={handleChange}
-            className="form-input-style"
-          />
-        </div>
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="收件人"
-            className="form-input-style"
-            onChange={(e) => setFilters((prev) => ({ ...prev, recipient: e.target.value }))}
-          />
-        </div>
-        <div className="relative">
-          <input
-            type="text"
-            name="client"
-            placeholder="客户单号"
-            value={filters.client}
-            onChange={handleChange}
-            className="form-input-style"
-          />
+            <option value="waybillNumber">运单号</option>
+            <option value="country">国家</option>
+            <option value="recipient">收件人</option>
+            <option value="client">客户单号</option>
+            <option value="trackingNumber">转单号</option>
+          </select>
         </div>
         <div className="flex space-x-4">
           <button

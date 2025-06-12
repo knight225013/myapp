@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface Channel {
@@ -8,26 +8,17 @@ interface Channel {
   name: string;
 }
 
-export default function UploadLabelForm() {
-  const [channels, setChannels] = useState<Channel[]>([]);
-  const [channelId, setChannelId] = useState('');
+interface UploadLabelFormProps {
+  channelId: string;
+  channels: Channel[];
+  onChangeChannelId: (id: string) => void;
+  onUpload: (data: Record<string, any>) => Promise<void>;
+}
+
+export default function UploadLabelForm({ channelId, channels, onChangeChannelId, onUpload }: UploadLabelFormProps) {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-
-  // ✅ 拉取渠道数据
-  useEffect(() => {
-    fetch('http://localhost:4000/api/channels')
-      .then((res) => res.json())
-      .then((res) => {
-        if (Array.isArray(res.data)) {
-          setChannels(res.data);
-        } else {
-          alert('❌ 渠道数据格式异常');
-        }
-      })
-      .catch(() => alert('❌ 获取渠道失败'));
-  }, []);
 
   // ✅ 提交 PDF 并携带 channelId
   const handleUpload = async () => {
@@ -74,7 +65,7 @@ export default function UploadLabelForm() {
 
       <select
         value={channelId}
-        onChange={(e) => setChannelId(e.target.value)}
+        onChange={(e) => onChangeChannelId(e.target.value)}
         className="border rounded-md px-3 py-2 w-full"
       >
         <option value="">请选择渠道</option>

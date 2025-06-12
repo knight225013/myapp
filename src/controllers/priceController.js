@@ -1,0 +1,49 @@
+const { prisma } = require('../lib/prisma');
+const { PriceSchema } = require('../prisma/zod');
+
+exports.createPrice = async (req, res) => {
+  try {
+    const result = PriceSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ success: false, error: result.error.errors });
+    }
+
+    const price = await prisma.price.create({
+      data: result.data
+    });
+    res.status(201).json({ success: true, data: price });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getAllPrice = async (req, res) => {
+  try {
+    const prices = await prisma.price.findMany({
+      include: {
+        channel: true
+      }
+    });
+    res.json({ success: true, data: prices });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getPriceById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const price = await prisma.price.findUnique({
+      where: { id },
+      include: {
+        channel: true
+      }
+    });
+    if (!price) {
+      return res.status(404).json({ success: false, error: '价格方案不存在' });
+    }
+    res.json({ success: true, data: price });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
