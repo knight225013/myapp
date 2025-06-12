@@ -40,7 +40,7 @@
     "react": "^18",
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",
-    "react-dom": "^18",
+    "react-dom": "^19",
     "react-toastify": "^11.0.5",
     "react-window": "^1.8.11",
     "tailwind-merge": "^3.3.1",
