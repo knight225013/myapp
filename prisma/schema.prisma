@@ -62,6 +62,23 @@ enum FinanceStatus {
   作废 // 记录已作废
 }
 
+// 客户状态枚举
+enum CustomerStatus {
+  ACTIVE // 正常
+  INACTIVE // 未激活
+  FROZEN // 冻结
+  BLACKLISTED // 黑名单
+}
+
+// 结算方式枚举
+enum SettlementMethod {
+  PREPAID // 预付
+  MONTHLY // 月结
+  T_PLUS_7 // T+7
+  T_PLUS_15 // T+15
+  T_PLUS_30 // T+30
+}
+
 // 租户模型
 model Tenant {
   id          String       @id @default(uuid()) // 租户唯一标识
@@ -76,18 +93,19 @@ model Tenant {
 
 // 用户模型
 model User {
-  id          String       @id @default(uuid()) // 用户唯一标识
-  name        String // 用户姓名
-  email       String       @unique // 用户邮箱，唯一
-  password    String // 用户密码
-  role        RoleType     @default(TENANT_STAFF) // 用户角色，默认租户员工
-  tenant      Tenant       @relation(fields: [tenantId], references: [id]) // 关联租户
-  tenantId    String // 租户 ID
-  permissions Permission[] // 关联的权限
-  fbaOrders   FBAOrder[] // 关联的创建运单
-  receivables Receivable[] // 关联的应收记录
-  payables    Payable[] // 关联的应付记录
-  createdAt   DateTime     @default(now()) // 创建时间
+  id                    String       @id @default(uuid()) // 用户唯一标识
+  name                  String // 用户姓名
+  email                 String       @unique // 用户邮箱，唯一
+  password              String // 用户密码
+  role                  RoleType     @default(TENANT_STAFF) // 用户角色，默认租户员工
+  tenant                Tenant       @relation(fields: [tenantId], references: [id]) // 关联租户
+  tenantId              String // 租户 ID
+  permissions           Permission[] // 关联的权限
+  fbaOrders             FBAOrder[] // 关联的创建运单
+  receivables           Receivable[] // 关联的应收记录
+  payables              Payable[] // 关联的应付记录
+  financeCustomers      Customer[]   @relation("CustomerFinanceContact") // 作为财务联系人的客户
+  createdAt             DateTime     @default(now()) // 创建时间
 }
 
 // 权限模型
@@ -138,16 +156,28 @@ model ShipmentLog {
 
 // 客户模型
 model Customer {
-  id        String     @id @default(uuid()) // 客户唯一标识
-  name      String // 客户名称
-  tenantId  String // 租户 ID
-  email     String? // 客户邮箱
-  phone     String? // 客户电话
-  address   String? // 客户地址
-  createdAt DateTime   @default(now()) // 创建时间
-  tenant    Tenant     @relation(fields: [tenantId], references: [id]) // 关联租户
-  fbaOrders FBAOrder[] @relation("Sender") // 关联的发件运单
-  orders    FBAOrder[] @relation("Customer") // 业务客户的运单
+  id               String           @id @default(uuid()) // 客户唯一标识
+  name             String // 客户名称
+  companyName      String? // 公司名称
+  tenantId         String // 租户 ID
+  email            String? // 客户邮箱
+  phone            String? // 客户电话
+  address          String? // 客户地址
+  status           CustomerStatus   @default(ACTIVE) // 客户状态
+  settlementMethod SettlementMethod @default(PREPAID) // 结算方式
+  financeContactId String? // 财务联系人ID
+  financeContact   User?            @relation("CustomerFinanceContact", fields: [financeContactId], references: [id]) // 财务联系人
+  businessLicense  String? // 营业执照文件路径
+  idCard           String? // 身份证文件路径
+  attachments      Json? // 附件信息 JSON
+  notes            String? // 备注
+  createdAt        DateTime         @default(now()) // 创建时间
+  updatedAt        DateTime         @updatedAt @default(now()) // 更新时间
+  tenant           Tenant           @relation(fields: [tenantId], references: [id]) // 关联租户
+  fbaOrders        FBAOrder[]       @relation("Sender") // 关联的发件运单
+  orders           FBAOrder[]       @relation("Customer") // 业务客户的运单
+  positions        Position[] // 关联的职位
+  loginLogs        LoginLog[] // 登录日志
 }
 
 // FBA 运单表
@@ -442,4 +472,36 @@ model Price {
   createdAt  DateTime @default(now())
   settings   PriceSetting[]
   channel    Channel  @relation(fields: [channelId], references: [id])
+}
+
+// 职位模型
+model Position {
+  id         String           @id @default(uuid()) // 职位唯一标识
+  title      String // 职位名称
+  customerId String // 客户 ID
+  customer   Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade) // 关联客户
+  members    PositionMember[] // 职位成员
+  createdAt  DateTime         @default(now()) // 创建时间
+}
+
+// 职位成员模型
+model PositionMember {
+  id         String   @id @default(uuid()) // 成员唯一标识
+  name       String // 成员姓名
+  phone      String? // 电话
+  email      String? // 邮箱
+  positionId String // 职位 ID
+  position   Position @relation(fields: [positionId], references: [id], onDelete: Cascade) // 关联职位
+  createdAt  DateTime @default(now()) // 创建时间
+}
+
+// 登录日志模型
+model LoginLog {
+  id         String   @id @default(uuid()) // 日志唯一标识
+  customerId String // 客户 ID
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade) // 关联客户
+  ip         String // IP 地址
+  device     String? // 设备信息
+  userAgent  String? // 用户代理
+  loginAt    DateTime @default(now()) // 登录时间
 }
