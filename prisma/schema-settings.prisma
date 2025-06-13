@@ -1,0 +1,442 @@
+// 系统设置相关数据模型
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 1. 基本信息 - 公司资料
+model CompanyProfile {
+  id          String   @id @default(cuid())
+  companyName String
+  logo        String?  // 存储logo文件路径或URL
+  address     String?
+  phone       String?
+  email       String?
+  website     String?
+  taxNumber   String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("company_profiles")
+}
+
+// 品牌和UI设置
+model BrandingSettings {
+  id              String   @id @default(cuid())
+  primaryColor    String   @default("#3B82F6") // 主色调
+  accentColor     String   @default("#10B981") // 强调色
+  logoUrl         String?  // Logo URL
+  logoDisplay     Boolean  @default(true)      // 是否显示Logo
+  systemSkin      String   @default("default") // 系统皮肤
+  defaultLanguage String   @default("zh-CN")   // 默认语言
+  customDomain    String?  // 自定义域名
+  loginBgImage    String?  // 登录页背景图
+  typography      String   @default("Inter")   // 字体
+  buttonStyle     String   @default("rounded") // 按钮样式
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("branding_settings")
+}
+
+// 2. 用户和权限管理
+enum UserStatus {
+  ACTIVE
+  DISABLED
+  DELETED
+}
+
+model User {
+  id          String     @id @default(cuid())
+  username    String     @unique
+  email       String     @unique
+  password    String     // 加密后的密码
+  firstName   String
+  lastName    String
+  phone       String?
+  avatar      String?
+  status      UserStatus @default(ACTIVE)
+  lastLoginAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // 关联关系
+  roles       UserRole[]
+  auditLogs   AuditLog[]
+  approvals   ApprovalRecord[]
+
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isSystem    Boolean  @default(false) // 是否为系统角色
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 关联关系
+  users       UserRole[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  id     String @id @default(cuid())
+  userId String
+  roleId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  module      String   // 模块名称 (finance, warehouse, etc.)
+  action      String   // 操作 (create, read, update, delete)
+  resource    String   // 资源 (invoice, payment, etc.)
+  description String?
+  createdAt   DateTime @default(now())
+
+  roles RolePermission[]
+
+  @@unique([module, action, resource])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String @id @default(cuid())
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// 审批工作流
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model ApprovalWorkflow {
+  id          String   @id @default(cuid())
+  name        String
+  module      String   // 模块 (payment, invoice, settlement)
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  steps   ApprovalStep[]
+  records ApprovalRecord[]
+
+  @@map("approval_workflows")
+}
+
+model ApprovalStep {
+  id         String @id @default(cuid())
+  workflowId String
+  stepOrder  Int    // 步骤顺序
+  roleId     String // 审批角色
+  isRequired Boolean @default(true) // 是否必须
+
+  workflow ApprovalWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  role     Role             @relation(fields: [roleId], references: [id])
+
+  @@unique([workflowId, stepOrder])
+  @@map("approval_steps")
+}
+
+model ApprovalRecord {
+  id           String         @id @default(cuid())
+  workflowId   String
+  entityType   String         // 实体类型 (payment, invoice)
+  entityId     String         // 实体ID
+  currentStep  Int            @default(1)
+  status       ApprovalStatus @default(PENDING)
+  submitterId  String         // 提交人
+  submittedAt  DateTime       @default(now())
+  completedAt  DateTime?
+  comments     String?
+
+  workflow  ApprovalWorkflow   @relation(fields: [workflowId], references: [id])
+  submitter User               @relation(fields: [submitterId], references: [id])
+  actions   ApprovalAction[]
+
+  @@map("approval_records")
+}
+
+model ApprovalAction {
+  id         String         @id @default(cuid())
+  recordId   String
+  stepOrder  Int
+  approverId String
+  status     ApprovalStatus
+  comments   String?
+  actionAt   DateTime       @default(now())
+
+  record    ApprovalRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  approver  User           @relation(fields: [approverId], references: [id])
+
+  @@map("approval_actions")
+}
+
+// 3. 仓库和位置管理
+enum WarehouseStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+enum InventoryStrategy {
+  FIFO // 先进先出
+  LIFO // 后进先出
+  FEFO // 先到期先出
+}
+
+model Warehouse {
+  id          String          @id @default(cuid())
+  code        String          @unique
+  name        String
+  address     String
+  city        String
+  country     String
+  manager     String?
+  phone       String?
+  email       String?
+  status      WarehouseStatus @default(ACTIVE)
+  capacity    Float?          // 容量
+  area        Float?          // 面积
+  description String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  locations WarehouseLocation[]
+  settings  WarehouseSettings?
+
+  @@map("warehouses")
+}
+
+model WarehouseLocation {
+  id          String  @id @default(cuid())
+  warehouseId String
+  code        String  // 位置编码
+  name        String
+  zone        String? // 区域
+  aisle       String? // 通道
+  shelf       String? // 货架
+  level       String? // 层级
+  capacity    Float?  // 容量
+  isActive    Boolean @default(true)
+
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@unique([warehouseId, code])
+  @@map("warehouse_locations")
+}
+
+model WarehouseSettings {
+  id                String            @id @default(cuid())
+  warehouseId       String            @unique
+  inboundStrategy   InventoryStrategy @default(FIFO)
+  outboundStrategy  InventoryStrategy @default(FIFO)
+  safetyStockLevel  Float             @default(0)
+  reorderPoint      Float             @default(0)
+  maxStockLevel     Float?
+  autoReorder       Boolean           @default(false)
+  temperatureMin    Float?            // 最低温度
+  temperatureMax    Float?            // 最高温度
+  humidityMin       Float?            // 最低湿度
+  humidityMax       Float?            // 最高湿度
+
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@map("warehouse_settings")
+}
+
+// 4. 编号规则和文档模板
+model NumberingRule {
+  id          String   @id @default(cuid())
+  entityType  String   // 实体类型 (waybill, invoice, payment)
+  prefix      String   // 前缀
+  length      Int      // 总长度
+  hasCheckDigit Boolean @default(false) // 是否有校验位
+  currentNumber Int     @default(1)     // 当前编号
+  resetPeriod String?  // 重置周期 (yearly, monthly, daily)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([entityType])
+  @@map("numbering_rules")
+}
+
+enum TemplateType {
+  LABEL
+  INVOICE
+  WAYBILL
+  RECEIPT
+  REPORT
+}
+
+model DocumentTemplate {
+  id          String       @id @default(cuid())
+  name        String
+  type        TemplateType
+  content     String       // 模板内容 (HTML/JSON)
+  variables   String?      // 可用变量 (JSON)
+  isDefault   Boolean      @default(false)
+  isActive    Boolean      @default(true)
+  description String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("document_templates")
+}
+
+// 5. 安全和审计
+model SecuritySettings {
+  id                    String   @id @default(cuid())
+  passwordMinLength     Int      @default(8)
+  passwordRequireUpper  Boolean  @default(true)
+  passwordRequireLower  Boolean  @default(true)
+  passwordRequireNumber Boolean  @default(true)
+  passwordRequireSymbol Boolean  @default(false)
+  passwordExpiryDays    Int      @default(90)
+  maxLoginAttempts      Int      @default(5)
+  lockoutDuration       Int      @default(30) // 分钟
+  sessionTimeout        Int      @default(480) // 分钟
+  require2FA            Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("security_settings")
+}
+
+model IPWhitelist {
+  id          String   @id @default(cuid())
+  ipAddress   String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("ip_whitelist")
+}
+
+model IPBlacklist {
+  id          String   @id @default(cuid())
+  ipAddress   String   @unique
+  reason      String?
+  blockedAt   DateTime @default(now())
+  expiresAt   DateTime?
+  isActive    Boolean  @default(true)
+
+  @@map("ip_blacklist")
+}
+
+enum AuditAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  APPROVE
+  REJECT
+}
+
+model AuditLog {
+  id          String      @id @default(cuid())
+  userId      String?
+  action      AuditAction
+  entityType  String      // 实体类型
+  entityId    String?     // 实体ID
+  oldValues   String?     // 旧值 (JSON)
+  newValues   String?     // 新值 (JSON)
+  ipAddress   String?
+  userAgent   String?
+  description String?
+  createdAt   DateTime    @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+// 6. 自定义字段和元数据
+enum FieldType {
+  TEXT
+  NUMBER
+  BOOLEAN
+  DATE
+  DATETIME
+  ENUM
+  JSON
+}
+
+model CustomField {
+  id           String    @id @default(cuid())
+  entityType   String    // 实体类型 (customer, waybill, invoice)
+  fieldName    String    // 字段名称
+  fieldLabel   String    // 字段标签
+  fieldType    FieldType // 字段类型
+  isRequired   Boolean   @default(false)
+  isVisible    Boolean   @default(true)
+  defaultValue String?   // 默认值
+  options      String?   // 选项 (JSON, 用于ENUM类型)
+  validation   String?   // 验证规则 (JSON)
+  sortOrder    Int       @default(0)
+  description  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  values CustomFieldValue[]
+
+  @@unique([entityType, fieldName])
+  @@map("custom_fields")
+}
+
+model CustomFieldValue {
+  id          String @id @default(cuid())
+  fieldId     String
+  entityId    String // 实体ID
+  value       String // 字段值
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  field CustomField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@unique([fieldId, entityId])
+  @@map("custom_field_values")
+}
+
+// 系统配置
+model SystemConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  category  String   // 配置分类
+  description String?
+  isPublic  Boolean  @default(false) // 是否为公开配置
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_configs")
+} 

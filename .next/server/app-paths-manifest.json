@@ -1,5 +1,10 @@
 {
-  "/api/clients/[id]/route": "app/api/clients/[id]/route.js",
-  "/api/clients/route": "app/api/clients/route.js",
-  "/clients/page": "app/clients/page.js"
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/settings/overview/route": "app/api/settings/overview/route.js",
+  "/api/channels/route": "app/api/channels/route.js",
+  "/settings/page": "app/settings/page.js",
+  "/settings/company/page": "app/settings/company/page.js",
+  "/settings/users/page": "app/settings/users/page.js",
+  "/settings/warehouses/page": "app/settings/warehouses/page.js",
+  "/channels/page": "app/channels/page.js"
 }

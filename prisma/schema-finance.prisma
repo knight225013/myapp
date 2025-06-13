@@ -1,0 +1,462 @@
+// 财务系统数据模型扩展
+
+// 币种枚举
+enum CurrencyCode {
+  CNY // 人民币
+  USD // 美元
+  EUR // 欧元
+  GBP // 英镑
+  JPY // 日元
+  HKD // 港币
+  SGD // 新加坡元
+  AUD // 澳元
+  CAD // 加元
+}
+
+// 发票类型枚举
+enum InvoiceType {
+  VAT        // 增值税发票
+  COMMERCIAL // 商业发票
+  PROFORMA   // 形式发票
+  DEBIT_NOTE // 借记单
+  CREDIT_NOTE // 贷记单
+}
+
+// 发票状态枚举
+enum InvoiceStatus {
+  DRAFT      // 草稿
+  PENDING    // 待审核
+  APPROVED   // 已审核
+  SENT       // 已发送
+  PAID       // 已付款
+  OVERDUE    // 逾期
+  CANCELLED  // 已取消
+  VOIDED     // 已作废
+}
+
+// 付款状态枚举
+enum PaymentStatus {
+  PENDING    // 待付款
+  PARTIAL    // 部分付款
+  PAID       // 已付款
+  OVERDUE    // 逾期
+  CANCELLED  // 已取消
+}
+
+// 付款方式枚举
+enum PaymentMethod {
+  BANK_TRANSFER // 银行转账
+  ALIPAY       // 支付宝
+  WECHAT       // 微信支付
+  CASH         // 现金
+  CHECK        // 支票
+  CREDIT_CARD  // 信用卡
+}
+
+// 审批状态枚举
+enum ApprovalStatus {
+  PENDING   // 待审批
+  APPROVED  // 已批准
+  REJECTED  // 已拒绝
+  CANCELLED // 已取消
+}
+
+// 汇率模型
+model ExchangeRate {
+  id           String      @id @default(uuid())
+  fromCurrency CurrencyCode
+  toCurrency   CurrencyCode
+  rate         Decimal     @db.Decimal(18, 8)
+  effectiveDate DateTime
+  source       String?     // 汇率来源：manual, api, bank
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  createdBy    String?
+  
+  @@unique([fromCurrency, toCurrency, effectiveDate])
+  @@map("exchange_rates")
+}
+
+// 费用类型模型
+model ChargeType {
+  id          String  @id @default(uuid())
+  code        String  @unique
+  name        String
+  nameEn      String?
+  category    String  // freight, surcharge, duty, insurance, handling
+  description String?
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // 关联
+  invoiceItems InvoiceItem[]
+  billingRules BillingRule[]
+  payableItems PayableItem[]
+  
+  @@map("charge_types")
+}
+
+// 计费规则模型
+model BillingRule {
+  id            String      @id @default(uuid())
+  channelId     String
+  chargeTypeId  String
+  currency      CurrencyCode
+  unitType      String      // per_kg, per_cbm, per_shipment, percentage
+  baseRate      Decimal     @db.Decimal(10, 4)
+  minCharge     Decimal?    @db.Decimal(10, 2)
+  maxCharge     Decimal?    @db.Decimal(10, 2)
+  conditions    Json?       // 计费条件
+  effectiveDate DateTime
+  expiryDate    DateTime?
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  // 关联
+  channel     Channel    @relation(fields: [channelId], references: [id])
+  chargeType  ChargeType @relation(fields: [chargeTypeId], references: [id])
+  
+  @@map("billing_rules")
+}
+
+// 发票模型
+model FinanceInvoice {
+  id              String        @id @default(uuid())
+  invoiceNumber   String        @unique
+  type            InvoiceType
+  status          InvoiceStatus @default(DRAFT)
+  customerId      String
+  customerName    String
+  customerAddress String?
+  customerTaxId   String?
+  
+  // 金额信息
+  currency        CurrencyCode
+  subtotal        Decimal       @db.Decimal(12, 2)
+  taxAmount       Decimal       @db.Decimal(12, 2) @default(0)
+  totalAmount     Decimal       @db.Decimal(12, 2)
+  paidAmount      Decimal       @db.Decimal(12, 2) @default(0)
+  balanceAmount   Decimal       @db.Decimal(12, 2)
+  
+  // 日期信息
+  issueDate       DateTime
+  dueDate         DateTime
+  paidDate        DateTime?
+  
+  // 其他信息
+  description     String?
+  notes           String?
+  terms           String?
+  attachments     Json?
+  
+  // 关联发票（用于贷记单等）
+  parentInvoiceId String?
+  parentInvoice   FinanceInvoice? @relation("InvoiceParent", fields: [parentInvoiceId], references: [id])
+  childInvoices   FinanceInvoice[] @relation("InvoiceParent")
+  
+  // 审计信息
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  createdBy       String
+  approvedBy      String?
+  approvedAt      DateTime?
+  
+  // 关联
+  customer        Customer     @relation(fields: [customerId], references: [id])
+  items           InvoiceItem[]
+  payments        FinancePayment[]
+  statements      StatementItem[]
+  
+  @@map("finance_invoices")
+}
+
+// 发票明细模型
+model InvoiceItem {
+  id           String     @id @default(uuid())
+  invoiceId    String
+  shipmentId   String?    // 关联运单
+  chargeTypeId String
+  description  String
+  quantity     Decimal    @db.Decimal(10, 4)
+  unitPrice    Decimal    @db.Decimal(10, 4)
+  amount       Decimal    @db.Decimal(12, 2)
+  currency     CurrencyCode
+  exchangeRate Decimal?   @db.Decimal(18, 8)
+  amountCny    Decimal?   @db.Decimal(12, 2) // 人民币金额
+  
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  
+  // 关联
+  invoice      FinanceInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  chargeType   ChargeType @relation(fields: [chargeTypeId], references: [id])
+  shipment     FBAOrder?  @relation(fields: [shipmentId], references: [id])
+  
+  @@map("invoice_items")
+}
+
+// 付款记录模型
+model FinancePayment {
+  id              String        @id @default(uuid())
+  paymentNumber   String        @unique
+  invoiceId       String?
+  customerId      String
+  amount          Decimal       @db.Decimal(12, 2)
+  currency        CurrencyCode
+  exchangeRate    Decimal?      @db.Decimal(18, 8)
+  amountCny       Decimal?      @db.Decimal(12, 2)
+  method          PaymentMethod
+  status          PaymentStatus @default(PENDING)
+  
+  // 付款信息
+  paymentDate     DateTime
+  receivedDate    DateTime?
+  bankAccount     String?
+  transactionRef  String?
+  
+  // 预付款信息
+  isAdvance       Boolean       @default(false)
+  advanceBalance  Decimal       @db.Decimal(12, 2) @default(0)
+  
+  description     String?
+  attachments     Json?
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  createdBy       String
+  
+  // 关联
+  invoice         FinanceInvoice? @relation(fields: [invoiceId], references: [id])
+  customer        Customer      @relation(fields: [customerId], references: [id])
+  allocations     PaymentAllocation[]
+  
+  @@map("finance_payments")
+}
+
+// 付款分配模型（用于预付款抵扣）
+model PaymentAllocation {
+  id          String   @id @default(uuid())
+  paymentId   String
+  invoiceId   String
+  amount      Decimal  @db.Decimal(12, 2)
+  allocatedAt DateTime @default(now())
+  createdBy   String
+  
+  // 关联
+  payment     FinancePayment  @relation(fields: [paymentId], references: [id])
+  invoice     FinanceInvoice  @relation(fields: [invoiceId], references: [id])
+  
+  @@map("payment_allocations")
+}
+
+// 应付账款模型
+model Payable {
+  id              String        @id @default(uuid())
+  payableNumber   String        @unique
+  vendorId        String?       // 供应商ID
+  vendorName      String
+  vendorTaxId     String?
+  
+  // 金额信息
+  currency        CurrencyCode
+  amount          Decimal       @db.Decimal(12, 2)
+  paidAmount      Decimal       @db.Decimal(12, 2) @default(0)
+  balanceAmount   Decimal       @db.Decimal(12, 2)
+  
+  // 日期信息
+  invoiceDate     DateTime
+  dueDate         DateTime
+  paidDate        DateTime?
+  
+  // 状态信息
+  status          PaymentStatus @default(PENDING)
+  approvalStatus  ApprovalStatus @default(PENDING)
+  
+  description     String?
+  invoiceRef      String?       // 供应商发票号
+  attachments     Json?
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  createdBy       String
+  approvedBy      String?
+  approvedAt      DateTime?
+  
+  // 关联
+  items           PayableItem[]
+  payments        PayablePayment[]
+  
+  @@map("payables")
+}
+
+// 应付账款明细模型
+model PayableItem {
+  id           String     @id @default(uuid())
+  payableId    String
+  shipmentId   String?
+  chargeTypeId String
+  description  String
+  quantity     Decimal    @db.Decimal(10, 4)
+  unitPrice    Decimal    @db.Decimal(10, 4)
+  amount       Decimal    @db.Decimal(12, 2)
+  currency     CurrencyCode
+  
+  createdAt    DateTime   @default(now())
+  
+  // 关联
+  payable      Payable    @relation(fields: [payableId], references: [id], onDelete: Cascade)
+  chargeType   ChargeType @relation(fields: [chargeTypeId], references: [id])
+  shipment     FBAOrder?  @relation(fields: [shipmentId], references: [id])
+  
+  @@map("payable_items")
+}
+
+// 应付款支付记录模型
+model PayablePayment {
+  id              String        @id @default(uuid())
+  payableId       String
+  amount          Decimal       @db.Decimal(12, 2)
+  currency        CurrencyCode
+  method          PaymentMethod
+  paymentDate     DateTime
+  transactionRef  String?
+  description     String?
+  
+  createdAt       DateTime      @default(now())
+  createdBy       String
+  
+  // 关联
+  payable         Payable       @relation(fields: [payableId], references: [id])
+  
+  @@map("payable_payments")
+}
+
+// 对账单模型
+model Statement {
+  id            String          @id @default(uuid())
+  statementNumber String        @unique
+  customerId    String
+  currency      CurrencyCode
+  periodStart   DateTime
+  periodEnd     DateTime
+  
+  // 金额汇总
+  openingBalance    Decimal     @db.Decimal(12, 2) @default(0)
+  totalInvoices     Decimal     @db.Decimal(12, 2) @default(0)
+  totalPayments     Decimal     @db.Decimal(12, 2) @default(0)
+  closingBalance    Decimal     @db.Decimal(12, 2) @default(0)
+  
+  status        String          @default("DRAFT") // DRAFT, SENT, CONFIRMED
+  sentDate      DateTime?
+  confirmedDate DateTime?
+  confirmedBy   String?
+  
+  notes         String?
+  attachments   Json?
+  
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  createdBy     String
+  
+  // 关联
+  customer      Customer        @relation(fields: [customerId], references: [id])
+  items         StatementItem[]
+  
+  @@map("statements")
+}
+
+// 对账单明细模型
+model StatementItem {
+  id          String    @id @default(uuid())
+  statementId String
+  invoiceId   String?
+  paymentId   String?
+  date        DateTime
+  description String
+  debitAmount Decimal?  @db.Decimal(12, 2)
+  creditAmount Decimal? @db.Decimal(12, 2)
+  balance     Decimal   @db.Decimal(12, 2)
+  
+  // 关联
+  statement   Statement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+  invoice     FinanceInvoice? @relation(fields: [invoiceId], references: [id])
+  
+  @@map("statement_items")
+}
+
+// 客户信用模型
+model CustomerCredit {
+  id            String      @id @default(uuid())
+  customerId    String      @unique
+  creditLimit   Decimal     @db.Decimal(12, 2)
+  usedCredit    Decimal     @db.Decimal(12, 2) @default(0)
+  availableCredit Decimal   @db.Decimal(12, 2)
+  currency      CurrencyCode @default(CNY)
+  
+  // 风险控制
+  riskLevel     String      @default("LOW") // LOW, MEDIUM, HIGH
+  isBlocked     Boolean     @default(false)
+  blockReason   String?
+  blockedAt     DateTime?
+  blockedBy     String?
+  
+  // 信用期限
+  paymentTerms  Int         @default(30) // 天数
+  
+  lastReviewDate DateTime?
+  nextReviewDate DateTime?
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  createdBy     String
+  
+  // 关联
+  customer      Customer    @relation(fields: [customerId], references: [id])
+  
+  @@map("customer_credits")
+}
+
+// 财务报表模型
+model FinancialReport {
+  id          String   @id @default(uuid())
+  reportType  String   // P&L, BALANCE_SHEET, CASH_FLOW, AGING
+  periodType  String   // MONTHLY, QUARTERLY, YEARLY
+  periodStart DateTime
+  periodEnd   DateTime
+  currency    CurrencyCode @default(CNY)
+  
+  data        Json     // 报表数据
+  generatedAt DateTime @default(now())
+  generatedBy String
+  
+  @@map("financial_reports")
+}
+
+// 扩展现有模型的关联
+model Customer {
+  // 新增财务相关字段
+  invoices      FinanceInvoice[]
+  payments      FinancePayment[]
+  statements    Statement[]
+  credit        CustomerCredit?
+  
+  // 财务设置
+  defaultCurrency CurrencyCode @default(CNY)
+  paymentTerms    Int          @default(30)
+  taxId           String?
+  billingAddress  String?
+}
+
+model FBAOrder {
+  // 新增财务关联
+  invoiceItems  InvoiceItem[]
+  payableItems  PayableItem[]
+  
+  // 计费状态
+  isBilled      Boolean @default(false)
+  billedAt      DateTime?
+  billedBy      String?
+} 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { MoreVertical, Edit, Trash2, Phone } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import ClientStatusBadge from './ClientStatusBadge';
 import { Client } from '@/app/clients/page';
 
@@ -12,6 +13,7 @@ interface ClientTableRowProps {
 
 export default function ClientTableRow({ client, onRefresh, onEdit, onDelete }: ClientTableRowProps) {
   const [showMenu, setShowMenu] = useState(false);
+  const router = useRouter();
 
   const handleEdit = () => {
     onEdit(client);
@@ -28,6 +30,10 @@ export default function ClientTableRow({ client, onRefresh, onEdit, onDelete }: 
       window.open(`tel:${client.phoneNumber}`);
     }
     setShowMenu(false);
+  };
+
+  const handleCompanyClick = () => {
+    router.push(`/clients/${client.id}`);
   };
 
   // Generate avatar from company name
@@ -68,9 +74,12 @@ export default function ClientTableRow({ client, onRefresh, onEdit, onDelete }: 
             {getAvatarText(client.companyName)}
           </div>
           <div>
-            <div className="text-sm font-medium text-gray-900">
+            <button
+              onClick={handleCompanyClick}
+              className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors cursor-pointer"
+            >
               {client.companyName}
-            </div>
+            </button>
             <div className="text-sm text-gray-500">
               {client.contactName}
             </div>
@@ -126,6 +135,13 @@ export default function ClientTableRow({ client, onRefresh, onEdit, onDelete }: 
                 onClick={() => setShowMenu(false)}
               />
               <div className="absolute right-0 top-8 z-20 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
+                <button
+                  onClick={handleCompanyClick}
+                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <Edit className="w-4 h-4" />
+                  查看详情
+                </button>
                 <button
                   onClick={handleEdit}
                   className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
