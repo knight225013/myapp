@@ -16,7 +16,7 @@ export default function ShipmentEditForm({
 }: {
   shipment: Shipment;
   onCancel: () => void;
-  onSuccess: () => void;
+  onSuccess: (data?: any) => void;
 }) {
   const [formData, setFormData] = useState({
     client: shipment.recipient || '',
@@ -44,16 +44,19 @@ export default function ShipmentEditForm({
     trackingNumber: shipment.trackingNumber || '',
   });
   const [customers, setCustomers] = useState<{ id: string; name: string }[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    fetch('http://localhost:4000/api/customers')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          setCustomers(data.data.map((c: any) => ({ id: c.id, name: c.name })));
+    fetch('/api/customers')
+      .then(res => res.json())
+      .then(({ success, data, error }) => {
+        if (success) {
+          setCustomers(data);
+        } else {
+          console.error('获取客户列表失败:', error);
         }
       })
-      .catch((error) => console.error('获取客户列表失败:', error));
+      .catch(error => console.error('获取客户列表失败:', error));
   }, []);
 
   const statusOptions = ['已下单', '已收货', '转运中', '已签收', '退件', '已取消'];
@@ -74,25 +77,30 @@ export default function ShipmentEditForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+
     try {
-      const res = await fetch(`http://localhost:4000/api/waybills/${shipment.id}`, {
+      const res = await fetch(`/api/waybills/${shipment.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          volume: parseFloat(formData.volume) || 0,
-          volumetricWeight: parseFloat(formData.volumetricWeight) || 0,
-          chargeWeight: parseFloat(formData.chargeWeight) || 0,
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
       });
-      if (res.ok) {
-        onSuccess();
-      } else {
-        alert('更新失败');
+
+      const { success, data, error } = await res.json();
+      
+      if (!success) {
+        throw new Error(error || '更新运单失败');
       }
+
+      alert('运单更新成功！');
+      onSuccess?.(data);
     } catch (error) {
-      console.error('提交错误:', error);
-      alert('更新失败');
+      console.error('更新运单失败:', error);
+      alert(error instanceof Error ? error.message : '更新运单失败');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -306,7 +314,7 @@ export default function ShipmentEditForm({
           />
         </div>
         <div className="flex justify-end mt-6 gap-4">
-          <button type="submit" className="gradient-btn px-6 py-2 rounded-xl text-white">
+          <button type="submit" className="gradient-btn px-6 py-2 rounded-xl text-white" disabled={isSubmitting}>
             保存
           </button>
           <button

@@ -102,58 +102,59 @@ export default function WaybillPageClient({ initialData, statusButtons }: Waybil
   );
 
   // 获取渠道列表 - 使用useCallback优化
-  const fetchChannels = useCallback(async () => {
+  const fetchChannels = async () => {
     try {
-      const res = await fetch('http://localhost:4000/api/channels');
-      if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
-      const data = await res.json();
-      if (data.success && Array.isArray(data.data)) {
-        setChannels(data.data);
-      } else {
-        console.error('❌ 获取渠道失败:', data.error || '数据格式错误');
-        setChannels([]);
-      }
-    } catch (err) {
-      console.error('❌ 获取渠道失败:', err);
-      setChannels([]);
+      const res = await fetch('/api/channels');
+      const { success, data, error } = await res.json();
+      if (!success) throw new Error(error);
+      setChannels(data);
+    } catch (error) {
+      console.error('获取渠道失败:', error);
     }
-  }, []);
+  };
 
   // 获取运单数据 - 使用useCallback优化
-  const fetchWaybills = useCallback(async () => {
+  const fetchShipments = async () => {
+    setLoading(true);
     try {
       const params = new URLSearchParams({
-        page: String(currentPage),
-        limit: String(limit),
-        type: 'FBA',
-        ...filters,
-        [searchType]: debouncedSearchTerm,
+        page: currentPage.toString(),
+        limit: limit.toString(),
+        status: selectedStatus,
+        ...(debouncedSearchTerm && { search: debouncedSearchTerm }),
+        ...(filters.country && { country: filters.country }),
+        ...(filters.channel && { channel: filters.channel }),
+        ...(filters.date && { date: filters.date }),
+        ...(filters.trackingNumber && { trackingNumber: filters.trackingNumber }),
+        ...(filters.recipient && { recipient: filters.recipient }),
       });
       
-      const res = await fetch(`http://localhost:4000/api/waybills?${params.toString()}`);
-      const data = await res.json();
+      const res = await fetch(`/api/waybills?${params.toString()}`);
+      const { success, data, error } = await res.json();
+      if (!success) throw new Error(error);
       
-      if (data.success) {
-        setShipments(data.data || []);
-        setTotal(data.total || 0);
-      }
+      setShipments(data.shipments || []);
+      setTotal(data.total || 0);
     } catch (error) {
       console.error('获取运单失败:', error);
+      setShipments([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
     }
-  }, [currentPage, limit, filters, debouncedSearchTerm, searchType]);
+  };
 
   // 获取状态统计 - 使用useCallback优化
-  const fetchStatusCounts = useCallback(async () => {
+  const fetchStatusCounts = async () => {
     try {
-      const res = await fetch('http://localhost:4000/api/waybills/status-counts');
-      const data = await res.json();
-      if (data.success) {
-        setStatusCounts(data.data);
-      }
+      const res = await fetch('/api/waybills/status-counts');
+      const { success, data, error } = await res.json();
+      if (!success) throw new Error(error);
+      setStatusCounts(data);
     } catch (error) {
       console.error('获取状态统计失败:', error);
     }
-  }, []);
+  };
 
   // 初始化数据获取
   useEffect(() => {
@@ -161,15 +162,15 @@ export default function WaybillPageClient({ initialData, statusButtons }: Waybil
       fetchChannels();
     }
     if (initialData.initialShipments.length === 0) {
-      fetchWaybills();
+      fetchShipments();
       fetchStatusCounts();
     }
-  }, [fetchChannels, fetchWaybills, fetchStatusCounts, initialData]);
+  }, [fetchChannels, fetchShipments, fetchStatusCounts, initialData]);
 
   // 监听搜索和过滤变化
   useEffect(() => {
-    fetchWaybills();
-  }, [fetchWaybills]);
+    fetchShipments();
+  }, [fetchShipments]);
 
   // 事件处理函数 - 使用useCallback优化
   const handleStatusClick = useCallback((status: string) => {
@@ -186,14 +187,14 @@ export default function WaybillPageClient({ initialData, statusButtons }: Waybil
   const handleCreateShipment = useCallback((formData: Record<string, any>) => {
     console.log('创建运单:', formData);
     setShowCreatePanel(false);
-    fetchWaybills();
-  }, [fetchWaybills]);
+    fetchShipments();
+  }, [fetchShipments]);
 
   const handleEditSuccess = useCallback(() => {
-    fetchWaybills();
+    fetchShipments();
     setIsEditing(false);
     setSelectedShipment(null);
-  }, [fetchWaybills]);
+  }, [fetchShipments]);
 
   const handleClose = useCallback(() => {
     setIsDrawerOpen(false);

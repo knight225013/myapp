@@ -91,6 +91,7 @@ export default function FBAOrderForm({ isOpen, onClose }: FBAOrderFormProps) {
     boxes: [],
   });
   const [error, setError] = useState<string | null>(null); // 错误信息
+  const [isSubmitting, setIsSubmitting] = useState(false); // 表单提交状态
 
   // 添加箱子
   const handleAddBox = () => {
@@ -111,38 +112,43 @@ export default function FBAOrderForm({ isOpen, onClose }: FBAOrderFormProps) {
   };
 
   // 提交订单
-  const handleSubmit = async () => {
-    try {
-      // 验证必填字段
-      if (
-        !formData.channelId ||
-        !formData.recipient ||
-        !formData.country ||
-        !formData.quantity ||
-        !formData.weight ||
-        !formData.cargo ||
-        !formData.warehouse
-      ) {
-        setError('请填写必填字段：渠道、收件人、国家、数量、重量、货物描述、仓库');
-        return;
-      }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
 
-      // 发送创建请求到 Express 后端
-      const response = await fetch('http://localhost:4000/api/fba/create', {
+    try {
+      const response = await fetch('/api/fba/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(formData),
       });
 
-      const result = await response.json();
-      if (result.success) {
-        alert('订单创建成功！'); // 提示创建成功
-        onClose(); // 关闭表单
-      } else {
-        setError('创建失败：' + result.error); // 显示错误
+      const { success, data, error } = await response.json();
+      
+      if (!success) {
+        throw new Error(error || '创建运单失败');
       }
+
+      alert('运单创建成功！');
+      onClose();
+      
+      // 重置表单
+      setFormData({
+        recipient: '',
+        country: '',
+        quantity: 1,
+        weight: 0,
+        volume: 0,
+        cargo: '',
+        channelId: '',
+      });
     } catch (error) {
-      setError('创建失败：' + (error instanceof Error ? error.message : '未知错误')); // 显示异常错误
+      console.error('创建运单失败:', error);
+      alert(error instanceof Error ? error.message : '创建运单失败');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

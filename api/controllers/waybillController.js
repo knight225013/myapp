@@ -8,8 +8,8 @@ const { validateShipmentAgainstChannel } = require('../utils/channelValidation')
 const { evaluateExpression } = require('../utils/expressionUtils');
 const { cleanPrismaData } = require('../utils/cleanPrismaInput');
 
-const tenantId = 'b21918cb-9cb6-4482-ac33-19c70b2c0a12';
-const customerId = '380080d7-68eb-4461-b607-8c7d365f3fd1';
+const tenantId = 'test-tenant-id';
+const customerId = 'test-customer-id';
 
 async function createWaybillHandler(req, res) {
   try {
@@ -153,6 +153,8 @@ async function getWaybills(req, res) {
       where.createdAt = { gte: startDate.toISOString(), lt: endDate.toISOString() };
     }
 
+    console.log('查询条件:', JSON.stringify(where, null, 2));
+
     const [waybills, total] = await Promise.all([
       prisma.fBAOrder.findMany({
         where,
@@ -182,6 +184,8 @@ async function getWaybills(req, res) {
       }),
       prisma.fBAOrder.count({ where }),
     ]);
+
+    console.log(`找到 ${waybills.length} 个运单，总数: ${total}`);
 
     res.json({ success: true, data: waybills, total });
   } catch (error) {
@@ -268,17 +272,150 @@ async function getLogs(req, res) {
   }
 }
 
-// 添加运单轨迹节点
+// 删除运单
+async function deleteWaybill(req, res) {
+  const { id } = req.params;
+  
+  try {
+    // 检查运单是否存在
+    const waybill = await prisma.fBAOrder.findUnique({ 
+      where: { id },
+      include: { boxes: true }
+    });
+    
+    if (!waybill) {
+      return res.status(404).json({ success: false, error: '运单不存在' });
+    }
+
+    // 删除相关的箱子、日志和附件
+    await prisma.$transaction(async (tx) => {
+      // 删除箱子
+      await tx.box.deleteMany({
+        where: { fbaOrderId: id }
+      });
+      
+      // 删除运单日志
+      await tx.shipmentLog.deleteMany({
+        where: { shipmentId: id }
+      });
+      
+      // 删除运单
+      await tx.fBAOrder.delete({
+        where: { id }
+      });
+    });
+
+    res.json({ success: true, message: '运单删除成功' });
+  } catch (error) {
+    console.error('删除运单失败:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+// 创建财务草稿
+async function createFinanceDraft(waybillId) {
+  try {
+    // 获取运单详情
+    const waybill = await prisma.fBAOrder.findUnique({
+      where: { id: waybillId },
+      include: {
+        customer: true,
+        channel: true,
+        boxes: true
+      }
+    });
+
+    if (!waybill) {
+      console.error('运单不存在:', waybillId);
+      return;
+    }
+
+    // 检查是否已经存在财务草稿
+    const existingBill = await prisma.financeBill.findFirst({
+      where: {
+        waybillId: waybillId
+      }
+    });
+
+    if (existingBill) {
+      console.log('财务草稿已存在:', existingBill.id);
+      return existingBill;
+    }
+
+    // 生成账单号
+    const billNo = `BILL-${Date.now()}`;
+
+    // 计算总金额（使用运单的总费用）
+    const totalAmount = waybill.totalCost || waybill.freightCost || 0;
+
+    // 创建财务草稿
+    const financeBill = await prisma.financeBill.create({
+      data: {
+        billNo,
+        customerId: waybill.customerId,
+        waybillId: waybillId,
+        totalAmount: totalAmount,
+        status: 'draft',
+        currency: waybill.channel?.currency || 'CNY',
+        description: `运单 ${waybill.id} 的费用账单`,
+        items: [
+          {
+            description: '运费',
+            quantity: 1,
+            unitPrice: waybill.freightCost || 0,
+            amount: waybill.freightCost || 0
+          },
+          {
+            description: '附加费',
+            quantity: 1,
+            unitPrice: waybill.extraFee || 0,
+            amount: waybill.extraFee || 0
+          }
+        ].filter(item => item.amount > 0)
+      }
+    });
+
+    console.log('财务草稿创建成功:', financeBill.id);
+    return financeBill;
+  } catch (error) {
+    console.error('创建财务草稿失败:', error);
+    throw error;
+  }
+}
+
+// 修改添加运单轨迹节点函数，当状态为"已收货"时创建财务草稿
 async function addLog(req, res) {
   const { id } = req.params;
   const { status, remark } = req.body;
+  
   try {
     if (!status) return res.status(400).json({ success: false, error: '状态字段为必填' });
+    
     const shipment = await prisma.fBAOrder.findUnique({ where: { id } });
     if (!shipment) return res.status(404).json({ success: false, error: '运单不存在' });
+    
+    // 创建日志
     const log = await prisma.shipmentLog.create({
       data: { shipmentId: id, status, remark },
     });
+
+    // 更新运单状态
+    await prisma.fBAOrder.update({
+      where: { id },
+      data: { status }
+    });
+
+    // 如果状态是"已收货"，创建财务草稿
+    if (status === '已收货') {
+      try {
+        await createFinanceDraft(id);
+        console.log(`运单 ${id} 状态更新为已收货，财务草稿已创建`);
+      } catch (error) {
+        console.error('创建财务草稿失败，但运单状态更新成功:', error);
+        // 不影响主流程，只记录错误
+      }
+    }
+
     res.json({ success: true, data: log });
   } catch (error) {
     console.error('添加运单轨迹失败:', error);
@@ -406,4 +543,5 @@ module.exports = {
   addLog,
   getStats,
   getWaybillById,
+  deleteWaybill,
 };

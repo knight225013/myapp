@@ -19,16 +19,20 @@ export default function ExcelImportExport({ onImport }: ExcelImportExportProps) 
 
   const handleExport = async () => {
     try {
-      const res = await fetch('http://localhost:4000/api/channels/export');
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'channels.xlsx';
-      a.click();
-      window.URL.revokeObjectURL(url);
+      const res = await fetch('/api/channels/export');
+      const { success, data, error } = await res.json();
+      
+      if (!success) {
+        throw new Error(error || '导出失败');
+      }
+
+      // 处理导出数据
+      if (data.downloadUrl) {
+        window.open(data.downloadUrl, '_blank');
+      }
     } catch (error) {
-      alert('导出失败：' + (error instanceof Error ? error.message : '未知错误'));
+      console.error('导出失败:', error);
+      alert('导出失败');
     }
   };
 

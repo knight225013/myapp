@@ -10,6 +10,7 @@ export default function ShipmentTable({
   onPageChange,
   onSelectShipment,
   onEdit,
+  onDelete,
   statusCounts,
   selectedRows,
   setSelectedRows,
@@ -20,6 +21,7 @@ export default function ShipmentTable({
   onPageChange: (page: number) => void;
   onSelectShipment: (shipment: Shipment) => void;
   onEdit: (shipment: Shipment) => void;
+  onDelete?: (shipment: Shipment) => void;
   statusCounts: Record<string, number>;
   selectedRows: string[];
   setSelectedRows: React.Dispatch<React.SetStateAction<string[]>>;
@@ -42,28 +44,93 @@ export default function ShipmentTable({
 
   const handleDownloadLabels = async () => {
     if (selectedRows.length === 0) {
-      alert('请至少选择一个运单');
+      alert('请选择要下载的运单');
       return;
     }
 
     try {
-      const res = await fetch('http://localhost:4000/api/templates/download-labels', {
+      const res = await fetch('/api/templates/download-labels', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: selectedRows }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          shipmentIds: selectedRows,
+        }),
       });
 
-      if (!res.ok) throw new Error('下载失败');
+      const { success, data, error } = await res.json();
+      if (!success) throw new Error(error);
 
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'labels.pdf';
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      alert('下载失败：' + (err instanceof Error ? err.message : '未知错误'));
+      // 处理下载
+      if (data.downloadUrl) {
+        window.open(data.downloadUrl, '_blank');
+      }
+    } catch (error) {
+      console.error('下载面单失败:', error);
+      alert('下载面单失败');
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedRows.length === 0) {
+      alert('请选择要删除的运单');
+      return;
+    }
+
+    if (!confirm(`确定要删除选中的 ${selectedRows.length} 个运单吗？此操作不可恢复。`)) {
+      return;
+    }
+
+    try {
+      const deletePromises = selectedRows.map(id => 
+        fetch(`/api/waybills/${id}`, { method: 'DELETE' })
+      );
+      
+      const results = await Promise.all(deletePromises);
+      const failedDeletes = [];
+      
+      for (let i = 0; i < results.length; i++) {
+        const result = await results[i].json();
+        if (!result.success) {
+          failedDeletes.push(selectedRows[i]);
+        }
+      }
+
+      if (failedDeletes.length === 0) {
+        alert('批量删除成功');
+        setSelectedRows([]);
+        // 触发数据刷新
+        window.location.reload();
+      } else {
+        alert(`删除完成，但有 ${failedDeletes.length} 个运单删除失败`);
+      }
+    } catch (error) {
+      console.error('批量删除失败:', error);
+      alert('批量删除失败');
+    }
+  };
+
+  const handleSingleDelete = async (shipment: Shipment) => {
+    if (!confirm(`确定要删除运单 ${shipment.id} 吗？此操作不可恢复。`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/waybills/${shipment.id}`, {
+        method: 'DELETE'
+      });
+      
+      const { success, error } = await res.json();
+      if (!success) throw new Error(error);
+      
+      alert('运单删除成功');
+      if (onDelete) {
+        onDelete(shipment);
+      }
+    } catch (error) {
+      console.error('删除运单失败:', error);
+      alert('删除运单失败: ' + error.message);
     }
   };
 
@@ -76,6 +143,12 @@ export default function ShipmentTable({
             onClick={handleDownloadLabels}
           >
             下载标签
+          </button>
+          <button 
+            className="status-btn flex items-center px-6 py-2 rounded-xl shadow-md border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 transform hover:scale-105 active:scale-95 transition-all duration-150"
+            onClick={handleBatchDelete}
+          >
+            批量删除
           </button>
           <button className="status-btn flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl shadow-md border border-gray-200 transition hover-glow whitespace-nowrap">
             打印报表
@@ -182,12 +255,20 @@ export default function ShipmentTable({
                 )}
               </td>
               <td className="p-6 text-center">
-                <button
-                  className="text-indigo-700 hover:text-indigo-600 transition font-medium"
-                  onClick={() => onEdit(shipment)}
-                >
-                  编辑
-                </button>
+                <div className="flex justify-center gap-2">
+                  <button
+                    className="text-indigo-700 hover:text-indigo-600 transition font-medium"
+                    onClick={() => onEdit(shipment)}
+                  >
+                    编辑
+                  </button>
+                  <button
+                    className="text-red-600 hover:text-red-500 transition font-medium"
+                    onClick={() => handleSingleDelete(shipment)}
+                  >
+                    删除
+                  </button>
+                </div>
               </td>
               <td className="p-6 text-center">{shipment.createdAt || '--'}</td>
             </tr>

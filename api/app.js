@@ -18,6 +18,13 @@ app.use('/api/track', require('./routes/trackRoutes'));
 app.use('/api/carriers', require('./routes/carrierRoutes'));
 app.use('/api/upload-labels', require('./routes/uploadLabelRoutes'));
 
+// 新增路由
+app.use('/api/clients', require('./routes/clientRoutes'));
+app.use('/api/sales-reps', require('./routes/salesRepRoutes'));
+app.use('/api/dashboard', require('./routes/dashboardRoutes'));
+app.use('/api/template-upload', require('./routes/templateUploadRoutes'));
+app.use('/api/settings', require('./routes/settings'));
+
 // 全局错误处理
 app.use((err, req, res, next) => {
   console.error('全局错误:', err);

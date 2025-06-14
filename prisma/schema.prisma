@@ -4,7 +4,7 @@ generator client {
 
 generator zod {
   provider = "zod-prisma-types"
-  output   = "../prisma/zod"   // ← schema.prisma 在 prisma/，向上一级再进 prisma/zod
+  output   = "../prisma/zod" // ← schema.prisma 在 prisma/，向上一级再进 prisma/zod
 }
 
 // 数据源配置
@@ -93,19 +93,19 @@ model Tenant {
 
 // 用户模型
 model User {
-  id                    String       @id @default(uuid()) // 用户唯一标识
-  name                  String // 用户姓名
-  email                 String       @unique // 用户邮箱，唯一
-  password              String // 用户密码
-  role                  RoleType     @default(TENANT_STAFF) // 用户角色，默认租户员工
-  tenant                Tenant       @relation(fields: [tenantId], references: [id]) // 关联租户
-  tenantId              String // 租户 ID
-  permissions           Permission[] // 关联的权限
-  fbaOrders             FBAOrder[] // 关联的创建运单
-  receivables           Receivable[] // 关联的应收记录
-  payables              Payable[] // 关联的应付记录
-  financeCustomers      Customer[]   @relation("CustomerFinanceContact") // 作为财务联系人的客户
-  createdAt             DateTime     @default(now()) // 创建时间
+  id               String       @id @default(uuid()) // 用户唯一标识
+  name             String // 用户姓名
+  email            String       @unique // 用户邮箱，唯一
+  password         String // 用户密码
+  role             RoleType     @default(TENANT_STAFF) // 用户角色，默认租户员工
+  tenant           Tenant       @relation(fields: [tenantId], references: [id]) // 关联租户
+  tenantId         String // 租户 ID
+  permissions      Permission[] // 关联的权限
+  fbaOrders        FBAOrder[] // 关联的创建运单
+  receivables      Receivable[] // 关联的应收记录
+  payables         Payable[] // 关联的应付记录
+  financeCustomers Customer[]   @relation("CustomerFinanceContact") // 作为财务联系人的客户
+  createdAt        DateTime     @default(now()) // 创建时间
 }
 
 // 权限模型
@@ -172,12 +172,13 @@ model Customer {
   attachments      Json? // 附件信息 JSON
   notes            String? // 备注
   createdAt        DateTime         @default(now()) // 创建时间
-  updatedAt        DateTime         @updatedAt @default(now()) // 更新时间
+  updatedAt        DateTime         @default(now()) @updatedAt // 更新时间
   tenant           Tenant           @relation(fields: [tenantId], references: [id]) // 关联租户
   fbaOrders        FBAOrder[]       @relation("Sender") // 关联的发件运单
   orders           FBAOrder[]       @relation("Customer") // 业务客户的运单
   positions        Position[] // 关联的职位
   loginLogs        LoginLog[] // 登录日志
+  bills            FinanceBill[]
 }
 
 // FBA 运单表
@@ -255,6 +256,7 @@ model FBAOrder {
   carrierId           String? // 物流商 ID
   carrier             Carrier?      @relation(fields: [carrierId], references: [id]) // 关联物流商
   attachments         Attachment[] // 关联附件
+  bills               FinanceBill[]
 }
 
 // 附件模型
@@ -459,19 +461,19 @@ model PriceSetting {
   value     Float
   createdAt DateTime @default(now())
 
-  price     Price    @relation(fields: [priceId], references: [id])
+  price            Price           @relation(fields: [priceId], references: [id])
   transportPrice   TransportPrice? @relation(fields: [transportPriceId], references: [id])
   transportPriceId String?
 }
 
 model Price {
-  id         String   @id @default(uuid())
-  name       String
-  channelId  String
-  currency   String
-  createdAt  DateTime @default(now())
-  settings   PriceSetting[]
-  channel    Channel  @relation(fields: [channelId], references: [id])
+  id        String         @id @default(uuid())
+  name      String
+  channelId String
+  currency  String
+  createdAt DateTime       @default(now())
+  settings  PriceSetting[]
+  channel   Channel        @relation(fields: [channelId], references: [id])
 }
 
 // 职位模型
@@ -504,4 +506,48 @@ model LoginLog {
   device     String? // 设备信息
   userAgent  String? // 用户代理
   loginAt    DateTime @default(now()) // 登录时间
+}
+
+// 财务账单模型
+model FinanceBill {
+  id          String           @id @default(uuid())
+  billNo      String           @unique
+  customer    Customer         @relation(fields: [customerId], references: [id])
+  customerId  String
+  totalAmount Float
+  status      String           // draft, audited, issued, settled, void
+  waybills    FBAOrder[]
+  logs        BillLog[]        // 账单日志
+  attachments BillAttachment[] // 账单附件
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([customerId])
+  @@index([status])
+}
+
+// 账单日志模型
+model BillLog {
+  id        String      @id @default(uuid())
+  bill      FinanceBill @relation(fields: [billId], references: [id], onDelete: Cascade)
+  billId    String
+  status    String      // 状态变更
+  remark    String?     // 备注
+  timestamp DateTime    @default(now())
+
+  @@index([billId])
+}
+
+// 账单附件模型
+model BillAttachment {
+  id        String      @id @default(uuid())
+  bill      FinanceBill @relation(fields: [billId], references: [id], onDelete: Cascade)
+  billId    String
+  url       String      // 文件URL
+  filename  String      // 文件名
+  fileSize  Int?        // 文件大小
+  mimeType  String?     // MIME类型
+  createdAt DateTime    @default(now())
+
+  @@index([billId])
 }

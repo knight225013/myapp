@@ -49,46 +49,49 @@ export default function FinancePanel() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [limit] = useState(30);
+  const [loading, setLoading] = useState(false);
+  const [records, setRecords] = useState<FinanceRecord[]>([]);
 
-  // 获取财务记录
-  const fetchFinanceRecords = async (
-    type: 'receivable' | 'payable',
-    filters: FinanceFilters,
-    page: number,
-  ) => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
       const query = new URLSearchParams({
-        type,
-        page: page.toString(),
-        limit: limit.toString(),
-        ...filters,
+        type: activeTab,
+        status: filters.status,
+        ...(filters.dueDate && { dueDate: filters.dueDate }),
+        ...(filters.client && { client: filters.client }),
+        ...(filters.currency && { currency: filters.currency }),
       }).toString();
-      const res = await fetch(`http://localhost:4000/api/finance/records?${query}`);
-      const result = await res.json();
-      if (result.success) {
-        if (type === 'receivable') {
-          setReceivables(result.data);
-        } else {
-          setPayables(result.data);
-        }
-        setTotal(result.total);
-      } else {
-        console.error('获取财务记录失败:', result.error);
+
+      const res = await fetch(`/api/finance/records?${query}`);
+      const { success, data, error } = await res.json();
+      
+      if (!success) {
+        throw new Error(error || '获取数据失败');
       }
+
+      if (activeTab === 'receivable') {
+        setReceivables(data);
+      } else {
+        setPayables(data);
+      }
+      setTotal(data.length);
     } catch (error) {
       console.error('获取财务记录失败:', error);
+      if (activeTab === 'receivable') {
+        setReceivables([]);
+      } else {
+        setPayables([]);
+      }
+      setTotal(0);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // 初始化加载应收记录
   useEffect(() => {
-    fetchFinanceRecords('receivable', filters, page);
-  }, []);
-
-  // 切换 tab 或页面时刷新数据
-  useEffect(() => {
-    fetchFinanceRecords(activeTab, filters, page);
-  }, [activeTab, page]);
+    fetchData();
+  }, [activeTab, filters.status, filters.dueDate, filters.client, filters.currency]);
 
   const statusTabs = [
     { label: '草稿', icon: File },
@@ -128,13 +131,13 @@ export default function FinancePanel() {
         onChange={setFilters}
         onSearch={() => {
           setPage(1);
-          fetchFinanceRecords(activeTab, filters, 1);
+          fetchData();
         }}
         onReset={() => {
           const cleared = { client: '', currency: '', dueDate: '', status: '' };
           setFilters(cleared);
           setPage(1);
-          fetchFinanceRecords(activeTab, cleared, 1);
+          fetchData();
         }}
       />
       <div className="glass p-4">
@@ -144,7 +147,7 @@ export default function FinancePanel() {
             onClick={() => {
               setActiveTab('receivable');
               setPage(1);
-              fetchFinanceRecords('receivable', filters, 1);
+              fetchData();
             }}
           >
             <CreditCard className="w-4 h-4 mr-2" />
@@ -155,7 +158,7 @@ export default function FinancePanel() {
             onClick={() => {
               setActiveTab('payable');
               setPage(1);
-              fetchFinanceRecords('payable', filters, 1);
+              fetchData();
             }}
           >
             <Wallet className="w-4 h-4 mr-2" />

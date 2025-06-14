@@ -2,47 +2,116 @@
 const express = require('express');
 const router = express.Router();
 
-// 导入各个设置模块的路由
-const companyRoutes = require('./settings/company');
-const brandingRoutes = require('./settings/branding');
-const userRoutes = require('./settings/users');
-const roleRoutes = require('./settings/roles');
-const warehouseRoutes = require('./settings/warehouses');
-const numberingRoutes = require('./settings/numbering');
-const securityRoutes = require('./settings/security');
-const customFieldRoutes = require('./settings/customFields');
-const auditRoutes = require('./settings/audit');
+// 模拟用户数据
+const mockUsers = [
+  {
+    id: '1',
+    username: 'admin',
+    email: 'admin@company.com',
+    firstName: '系统',
+    lastName: '管理员',
+    phone: '+86-138-0000-0001',
+    avatar: null,
+    status: 'ACTIVE',
+    lastLoginAt: new Date().toISOString(),
+    createdAt: '2024-01-01T00:00:00Z',
+    roles: [
+      {
+        role: {
+          id: '1',
+          name: '超级管理员'
+        }
+      }
+    ]
+  }
+];
 
-// 中间件
-const { authenticate, authorize } = require('../middleware/auth');
-const { validateRequest } = require('../middleware/validation');
+// 模拟角色数据
+const mockRoles = [
+  {
+    id: '1',
+    name: '超级管理员',
+    description: '拥有系统所有权限的超级管理员',
+    isSystem: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+    permissions: [
+      {
+        permission: {
+          id: '1',
+          module: '*',
+          action: '*',
+          resource: '*',
+          description: '所有权限'
+        }
+      }
+    ]
+  }
+];
 
-// 应用认证中间件到所有设置路由
-router.use(authenticate);
+// 获取用户列表
+router.get('/users', async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search, status } = req.query;
+    
+    let filteredUsers = mockUsers;
+    
+    if (search) {
+      filteredUsers = mockUsers.filter(user => 
+        user.username.includes(search) || 
+        user.email.includes(search) ||
+        user.firstName.includes(search) ||
+        user.lastName.includes(search)
+      );
+    }
+    
+    if (status) {
+      filteredUsers = filteredUsers.filter(user => user.status === status);
+    }
+    
+    const total = filteredUsers.length;
+    const startIndex = (parseInt(page) - 1) * parseInt(limit);
+    const endIndex = startIndex + parseInt(limit);
+    const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+    
+    res.json({
+      success: true,
+      data: paginatedUsers,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        totalPages: Math.ceil(total / parseInt(limit))
+      }
+    });
+  } catch (error) {
+    console.error('获取用户列表失败:', error);
+    res.status(500).json({ success: false, error: '获取用户列表失败' });
+  }
+});
 
-// 路由分组
-router.use('/company', authorize('settings', 'manage'), companyRoutes);
-router.use('/branding', authorize('settings', 'manage'), brandingRoutes);
-router.use('/users', authorize('users', 'manage'), userRoutes);
-router.use('/roles', authorize('roles', 'manage'), roleRoutes);
-router.use('/warehouses', authorize('warehouses', 'manage'), warehouseRoutes);
-router.use('/numbering', authorize('settings', 'manage'), numberingRoutes);
-router.use('/security', authorize('security', 'manage'), securityRoutes);
-router.use('/custom-fields', authorize('settings', 'manage'), customFieldRoutes);
-router.use('/audit', authorize('audit', 'read'), auditRoutes);
+// 获取角色列表
+router.get('/roles', async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      data: mockRoles
+    });
+  } catch (error) {
+    console.error('获取角色列表失败:', error);
+    res.status(500).json({ success: false, error: '获取角色列表失败' });
+  }
+});
 
 // 获取系统概览信息
-router.get('/overview', authorize('settings', 'read'), async (req, res) => {
+router.get('/overview', async (req, res) => {
   try {
     const overview = {
-      company: await req.prisma.companyProfile.findFirst(),
-      userCount: await req.prisma.user.count({ where: { status: 'ACTIVE' } }),
-      warehouseCount: await req.prisma.warehouse.count({ where: { status: 'ACTIVE' } }),
-      customFieldCount: await req.prisma.customField.count(),
-      lastAuditLog: await req.prisma.auditLog.findFirst({
-        orderBy: { createdAt: 'desc' },
-        include: { user: { select: { username: true } } }
-      })
+      userCount: mockUsers.length,
+      activeUserCount: mockUsers.filter(u => u.status === 'ACTIVE').length,
+      roleCount: mockRoles.length,
+      systemVersion: '1.0.0',
+      lastUpdate: new Date().toISOString()
     };
 
     res.json({

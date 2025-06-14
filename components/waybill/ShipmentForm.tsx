@@ -147,29 +147,26 @@ export default function FbaShipmentForm({ isOpen, onClose, onSubmit }: FbaShipme
 
   useEffect(() => {
     const fetchChannels = async () => {
-      setLoading(true);
       try {
-        const response = await fetch('http://localhost:4000/api/channels');
-        if (!response.ok) throw new Error(`HTTP 错误: ${response.status}`);
-        const result = await response.json();
-        if (result.success) {
-          setChannels(result.data);
-          if (result.data.length === 0) {
-            setError('无可用渠道，请在渠道管理中添加');
-          } else {
-            const defaultChannel = result.data[0];
-            setFormData((prev) => ({ ...prev, channel: defaultChannel?.id || '' }));
-            setSelectedChannel(defaultChannel);
-          }
+        const response = await fetch('/api/channels');
+        const { success, data, error } = await response.json();
+        if (!success) throw new Error(error);
+        setChannels(data);
+        if (data.length === 0) {
+          setError('无可用渠道，请在渠道管理中添加');
         } else {
-          setError('获取渠道失败: ' + result.error);
+          const defaultChannel = data[0];
+          setFormData((prev) => ({ ...prev, channel: defaultChannel?.id || '' }));
+          setSelectedChannel(defaultChannel);
         }
       } catch (error) {
+        console.error('获取渠道失败:', error);
         setError('获取渠道失败: ' + (error instanceof Error ? error.message : '未知错误'));
       } finally {
         setLoading(false);
       }
     };
+
     fetchChannels();
   }, []);
 
@@ -370,132 +367,83 @@ export default function FbaShipmentForm({ isOpen, onClose, onSubmit }: FbaShipme
     }
 
     try {
-      const payload = {
-        waybillNumber: `WB${Date.now()}`,
-        channelId:
-          formData.channel && typeof formData.channel === 'object'
-            ? (formData.channel as any).id
-            : (formData.channel ?? ''),
-
-        country: formData.country,
-        warehouse: formData.warehouse,
-        boxCount: formData.boxCount.toString(),
-        boxes: formData.boxes.map((box) => ({
-          code: box.code,
-          fullCode: box.fullCode,
-          weight: parseFloat(box.weight) || 0,
-          length: parseFloat(box.length) || null,
-          width: parseFloat(box.width) || null,
-          height: parseFloat(box.height) || null,
-          hasBattery: box.hasBattery,
-          declaredValue: parseFloat(box.declaredValue || '0') || null,
-        })),
-        weight: parseFloat(formData.weight) || 0,
-        volume: parseFloat(formData.volume) || 0,
-        volumetricWeight: parseFloat(formData.volumetricWeight) || 0,
-        chargeWeight: parseFloat(formData.chargeWeight) || 0,
-        length: parseFloat(formData.length) || 0,
-        width: parseFloat(formData.width) || 0,
-        height: parseFloat(formData.height) || 0,
-        hasBattery: formData.hasBattery,
-        hasMagnetic: false,
-        hasDangerous: false,
-        clientCode: formData.clientCode,
-        company: formData.company,
-        recipient: formData.recipient,
-        address1: formData.address1,
-        address2: formData.address2,
-        address3: formData.address3,
-        city: formData.city,
-        state: formData.state,
-        postalCode: formData.postalCode,
-        phone: formData.phone,
-        email: formData.email,
-        store: formData.store,
-        ref1: formData.ref1,
-        vat: formData.vat,
-        currency: formData.currency,
-        productName: formData.productName,
-        attrs: formData.attrs,
-        notes: formData.notes,
-        insurance: formData.insurance,
-        type: 'FBA',
-        declaredValue: formData.boxes.reduce(
-          (sum, box) => sum + (parseFloat(box.declaredValue || '0') || 0),
-          0,
-        ),
+      // 准备发送的数据，将 channel 重命名为 channelId
+      const { channel, ...restFormData } = formData;
+      const submitData = {
+        ...restFormData,
+        channelId: channel, // 后端期望 channelId
+        type: 'FBA', // 明确指定类型为 FBA
       };
 
-      const response = await fetch('http://localhost:4000/api/waybills', {
+      const response = await fetch('/api/waybills', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Request-Source': 'FbaShipmentForm',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(submitData),
       });
 
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || `HTTP 错误: ${response.status}`);
-
-      if (result.success) {
-        setSubmitStatus('✅ 运单创建成功！');
-        if (onSubmit) onSubmit(formData);
-        setTimeout(() => {
-          setFormData({
-            channel: channels[0]?.id || '',
-            country: '',
-            warehouse: '',
-            boxCount: 1,
-            boxes: [
-              {
-                code: '1',
-                fullCode: 'BX000001',
-                weight: '',
-                length: '',
-                width: '',
-                height: '',
-                hasBattery: false,
-                declaredValue: '',
-              },
-            ],
-            weight: '',
-            length: '',
-            width: '',
-            height: '',
-            hasBattery: false,
-            clientCode: '',
-            company: '',
-            phone: '',
-            email: '',
-            store: '',
-            ref1: '',
-            vat: '',
-            ioss: '',
-            eori: '',
-            currency: '',
-            category: '',
-            productName: '',
-            attrs: [],
-            notes: '',
-            insurance: false,
-            recipient: '',
-            address1: '',
-            address2: '',
-            address3: '',
-            city: '',
-            state: '',
-            postalCode: '',
-            volume: '',
-            volumetricWeight: '',
-            chargeWeight: '',
-          });
-          onClose();
-        }, 1000);
-      } else {
-        throw new Error(result.error || '创建运单失败');
+      const { success, data, error } = await response.json();
+      
+      if (!success) {
+        throw new Error(error || '创建运单失败');
       }
+
+      setSubmitStatus('✅ 运单创建成功！');
+      if (onSubmit) onSubmit(formData);
+      setTimeout(() => {
+        setFormData({
+          channel: channels[0]?.id || '',
+          country: '',
+          warehouse: '',
+          boxCount: 1,
+          boxes: [
+            {
+              code: '1',
+              fullCode: 'BX000001',
+              weight: '',
+              length: '',
+              width: '',
+              height: '',
+              hasBattery: false,
+              declaredValue: '',
+            },
+          ],
+          weight: '',
+          length: '',
+          width: '',
+          height: '',
+          hasBattery: false,
+          clientCode: '',
+          company: '',
+          phone: '',
+          email: '',
+          store: '',
+          ref1: '',
+          vat: '',
+          ioss: '',
+          eori: '',
+          currency: '',
+          category: '',
+          productName: '',
+          attrs: [],
+          notes: '',
+          insurance: false,
+          recipient: '',
+          address1: '',
+          address2: '',
+          address3: '',
+          city: '',
+          state: '',
+          postalCode: '',
+          volume: '',
+          volumetricWeight: '',
+          chargeWeight: '',
+        });
+        onClose();
+      }, 1000);
     } catch (error) {
+      console.error('创建运单失败:', error);
       setSubmitStatus(`❌ 创建失败: ${error instanceof Error ? error.message : '未知错误'}`);
     } finally {
       setSubmitting(false);

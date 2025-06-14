@@ -21,39 +21,32 @@ export default function UploadLabelForm({ channelId, channels, onChangeChannelId
   const router = useRouter();
 
   // ✅ 提交 PDF 并携带 channelId
-  const handleUpload = async () => {
-    if (!file || !channelId) {
-      alert('请选择渠道和 PDF 文件');
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('channelId', channelId);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!file) return;
 
     setLoading(true);
+    const formData = new FormData();
+    formData.append('file', file);
 
     try {
-      const res = await fetch('http://localhost:4000/api/upload-label', {
+      const res = await fetch('/api/upload-label', {
         method: 'POST',
         body: formData,
       });
 
-      const result = await res.json();
-
-      if (result.success) {
-        const payload = result.parsedData;
-        if (payload) {
-          // ✅ 携带初始数据跳转到多步骤表单
-          router.push(`/waybill/create?initialData=${encodeURIComponent(JSON.stringify(payload))}`);
-        } else {
-          alert('✅ 上传成功，未返回初始数据');
-        }
-      } else {
-        alert('❌ 上传失败：' + result.error);
+      const { success, data, error } = await res.json();
+      
+      if (!success) {
+        throw new Error(error || '上传失败');
       }
-    } catch (err: any) {
-      alert('❌ 请求失败：' + err.message);
+
+      alert('面单上传成功！');
+      onUpload(data);
+      setFile(null);
+    } catch (error) {
+      console.error('上传面单失败:', error);
+      alert(error instanceof Error ? error.message : '上传面单失败');
     } finally {
       setLoading(false);
     }
@@ -84,7 +77,7 @@ export default function UploadLabelForm({ channelId, channels, onChangeChannelId
       />
 
       <button
-        onClick={handleUpload}
+        onClick={handleSubmit}
         disabled={!file || !channelId || loading}
         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded w-full"
       >

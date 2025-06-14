@@ -37,21 +37,16 @@ export default function FilterPanel({ onFilterChange }: FilterPanelProps) {
   // 获取渠道列表
   useEffect(() => {
     const fetchChannels = async () => {
-      setLoading(true);
       try {
-        const response = await fetch('http://localhost:4000/api/channels');
-        const result = await response.json();
-        if (result.success) {
-          setChannels(result.data); // 设置渠道列表
-        } else {
-          console.error('获取渠道失败:', result.error);
-        }
+        const response = await fetch('/api/channels');
+        const { success, data, error } = await response.json();
+        if (!success) throw new Error(error);
+        setChannels(data);
       } catch (error) {
         console.error('获取渠道失败:', error);
-      } finally {
-        setLoading(false);
       }
     };
+
     fetchChannels();
   }, []);
 

@@ -21,6 +21,7 @@ router.post('/', waybillController.createWaybillHandler);
 router.get('/:id', waybillController.getWaybillById);
 router.get('/:id/summary', waybillController.getSummary);
 router.put('/:id', waybillController.updateShipmentHandler);
+router.delete('/:id', waybillController.deleteWaybill);
 router.put('/boxes/:id', waybillController.updateBox);
 router.get('/fba/:id/logs', waybillController.getLogs);
 router.post('/fba/:id/logs', waybillController.addLog);

@@ -160,37 +160,18 @@ export default function MultiStepShipmentForm({
 
   useEffect(() => {
     const fetchChannels = async () => {
-      setLoading(true);
       try {
-        const response = await fetch('http://localhost:4000/api/channels');
-        if (!response.ok) throw new Error(`HTTP 错误: ${response.status}`);
-        const result = await response.json();
-        console.log('Channels API response:', result);
-        if (result.success) {
-          setChannels(result.data);
-          if (result.data.length === 0) {
-            setError('无可用渠道，请在渠道管理中添加');
-          } else {
-            const defaultChannel =
-              result.data.find((c: Channel) => c.id === initialData.channel) || result.data[0];
-            setFormData((prev) => ({
-              ...prev,
-              channel: defaultChannel?.id || '',
-              country: defaultChannel?.country || prev.country,
-            }));
-            setSelectedChannel(defaultChannel);
-          }
-        } else {
-          setError('获取渠道失败: ' + result.error);
-        }
+        const response = await fetch('/api/channels');
+        const { success, data, error } = await response.json();
+        if (!success) throw new Error(error);
+        setChannels(data);
       } catch (error) {
-        setError('获取渠道失败: ' + (error instanceof Error ? error.message : '未知错误'));
-      } finally {
-        setLoading(false);
+        console.error('获取渠道失败:', error);
       }
     };
+
     fetchChannels();
-  }, [initialData.channel]);
+  }, []);
 
   useEffect(() => {
     const channel = channels.find((c) => c.id === formData.channel);
@@ -429,12 +410,12 @@ export default function MultiStepShipmentForm({
     }
 
     try {
-      const payload = {
-        waybillNumber: `WB${Date.now()}`,
-        channelId: formData.channel,
-        country: formData.country,
-        warehouse: formData.warehouse,
-        boxCount: formData.boxCount.toString(),
+      // 准备发送的数据，将 channel 重命名为 channelId
+      const { channel, ...restFormData } = formData;
+      const submitData = {
+        ...restFormData,
+        channelId: channel, // 后端期望 channelId
+        type: 'FBA', // 明确指定类型为 FBA
         boxes: formData.boxes.map((box) => ({
           code: box.code,
           fullCode: box.fullCode,
@@ -445,68 +426,28 @@ export default function MultiStepShipmentForm({
           hasBattery: box.hasBattery,
           declaredValue: parseFloat(box.declaredValue || '0') || null,
         })),
-        weight: parseFloat(formData.weight) || 0,
-        volume: parseFloat(formData.volume) || 0,
-        volumetricWeight: parseFloat(formData.volumetricWeight) || 0,
-        chargeWeight: parseFloat(formData.chargeWeight) || 0,
-        length: parseFloat(formData.length) || 0,
-        width: parseFloat(formData.width) || 0,
-        height: parseFloat(formData.height) || 0,
-        hasBattery: formData.hasBattery,
-        hasMagnetic: false,
-        hasDangerous: false,
-        clientCode: formData.clientCode,
-        company: formData.company,
-        recipient: formData.recipient,
-        address1: formData.address1,
-        address2: formData.address2,
-        address3: formData.address3,
-        city: formData.city,
-        state: formData.state,
-        postalCode: formData.postalCode,
-        phone: formData.phone,
-        email: formData.email,
-        store: formData.store,
-        ref1: formData.ref1,
-        vat: formData.vat,
-        ioss: formData.ioss,
-        eori: formData.eori,
-        senderName: formData.senderName,
-        currency: formData.currency,
-        productName: formData.productName,
-        attrs: formData.attrs,
-        notes: formData.notes,
-        insurance: formData.insurance,
-        type: formData.type,
-        declaredValue: formData.boxes.reduce(
-          (sum, box) => sum + (parseFloat(box.declaredValue || '0') || 0),
-          0,
-        ),
       };
 
-      const response = await fetch('http://localhost:4000/api/waybills', {
+      const response = await fetch('/api/waybills', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Request-Source': 'MultiStepShipmentForm',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(submitData),
       });
 
-      const result = await response.json();
-      console.log('Waybill creation response:', result);
-      if (!response.ok) throw new Error(result.error || `HTTP 错误: ${response.status}`);
-
-      if (result.success) {
-        setSubmitStatus('✅ 运单创建成功！');
-        if (onSubmit) onSubmit(formData);
-        setTimeout(() => {
-          setFormData(defaultData);
-          onClose();
-        }, 1000);
-      } else {
-        throw new Error(result.error || '创建运单失败');
+      const { success, data, error } = await response.json();
+      
+      if (!success) {
+        throw new Error(error || '创建运单失败');
       }
+
+      setSubmitStatus('✅ 运单创建成功！');
+      if (onSubmit) onSubmit(formData);
+      setTimeout(() => {
+        setFormData(defaultData);
+        onClose();
+      }, 1000);
     } catch (error) {
       setSubmitStatus(`❌ 创建失败: ${error instanceof Error ? error.message : '未知错误'}`);
     } finally {

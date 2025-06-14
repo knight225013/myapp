@@ -96,6 +96,12 @@ export const PositionMemberScalarFieldEnumSchema = z.enum(['id','name','phone','
 
 export const LoginLogScalarFieldEnumSchema = z.enum(['id','customerId','ip','device','userAgent','loginAt']);
 
+export const FinanceBillScalarFieldEnumSchema = z.enum(['id','billNo','customerId','totalAmount','status','createdAt','updatedAt']);
+
+export const BillLogScalarFieldEnumSchema = z.enum(['id','billId','status','remark','timestamp']);
+
+export const BillAttachmentScalarFieldEnumSchema = z.enum(['id','billId','url','filename','fileSize','mimeType','createdAt']);
+
 export const SortOrderSchema = z.enum(['asc','desc']);
 
 export const NullableJsonNullValueInputSchema = z.enum(['DbNull','JsonNull',]).transform((value) => value === 'JsonNull' ? Prisma.JsonNull : value === 'DbNull' ? Prisma.DbNull : value);
@@ -606,6 +612,52 @@ export const LoginLogSchema = z.object({
 export type LoginLog = z.infer<typeof LoginLogSchema>
 
 /////////////////////////////////////////
+// FINANCE BILL SCHEMA
+/////////////////////////////////////////
+
+export const FinanceBillSchema = z.object({
+  id: z.string().uuid(),
+  billNo: z.string(),
+  customerId: z.string(),
+  totalAmount: z.number(),
+  status: z.string(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type FinanceBill = z.infer<typeof FinanceBillSchema>
+
+/////////////////////////////////////////
+// BILL LOG SCHEMA
+/////////////////////////////////////////
+
+export const BillLogSchema = z.object({
+  id: z.string().uuid(),
+  billId: z.string(),
+  status: z.string(),
+  remark: z.string().nullable(),
+  timestamp: z.coerce.date(),
+})
+
+export type BillLog = z.infer<typeof BillLogSchema>
+
+/////////////////////////////////////////
+// BILL ATTACHMENT SCHEMA
+/////////////////////////////////////////
+
+export const BillAttachmentSchema = z.object({
+  id: z.string().uuid(),
+  billId: z.string(),
+  url: z.string(),
+  filename: z.string(),
+  fileSize: z.number().int().nullable(),
+  mimeType: z.string().nullable(),
+  createdAt: z.coerce.date(),
+})
+
+export type BillAttachment = z.infer<typeof BillAttachmentSchema>
+
+/////////////////////////////////////////
 // SELECT & INCLUDE
 /////////////////////////////////////////
 
@@ -786,6 +838,7 @@ export const CustomerIncludeSchema: z.ZodType<Prisma.CustomerInclude> = z.object
   orders: z.union([z.boolean(),z.lazy(() => FBAOrderFindManyArgsSchema)]).optional(),
   positions: z.union([z.boolean(),z.lazy(() => PositionFindManyArgsSchema)]).optional(),
   loginLogs: z.union([z.boolean(),z.lazy(() => LoginLogFindManyArgsSchema)]).optional(),
+  bills: z.union([z.boolean(),z.lazy(() => FinanceBillFindManyArgsSchema)]).optional(),
   _count: z.union([z.boolean(),z.lazy(() => CustomerCountOutputTypeArgsSchema)]).optional(),
 }).strict()
 
@@ -803,6 +856,7 @@ export const CustomerCountOutputTypeSelectSchema: z.ZodType<Prisma.CustomerCount
   orders: z.boolean().optional(),
   positions: z.boolean().optional(),
   loginLogs: z.boolean().optional(),
+  bills: z.boolean().optional(),
 }).strict();
 
 export const CustomerSelectSchema: z.ZodType<Prisma.CustomerSelect> = z.object({
@@ -828,6 +882,7 @@ export const CustomerSelectSchema: z.ZodType<Prisma.CustomerSelect> = z.object({
   orders: z.union([z.boolean(),z.lazy(() => FBAOrderFindManyArgsSchema)]).optional(),
   positions: z.union([z.boolean(),z.lazy(() => PositionFindManyArgsSchema)]).optional(),
   loginLogs: z.union([z.boolean(),z.lazy(() => LoginLogFindManyArgsSchema)]).optional(),
+  bills: z.union([z.boolean(),z.lazy(() => FinanceBillFindManyArgsSchema)]).optional(),
   _count: z.union([z.boolean(),z.lazy(() => CustomerCountOutputTypeArgsSchema)]).optional(),
 }).strict()
 
@@ -845,6 +900,7 @@ export const FBAOrderIncludeSchema: z.ZodType<Prisma.FBAOrderInclude> = z.object
   logs: z.union([z.boolean(),z.lazy(() => ShipmentLogFindManyArgsSchema)]).optional(),
   carrier: z.union([z.boolean(),z.lazy(() => CarrierArgsSchema)]).optional(),
   attachments: z.union([z.boolean(),z.lazy(() => AttachmentFindManyArgsSchema)]).optional(),
+  bills: z.union([z.boolean(),z.lazy(() => FinanceBillFindManyArgsSchema)]).optional(),
   _count: z.union([z.boolean(),z.lazy(() => FBAOrderCountOutputTypeArgsSchema)]).optional(),
 }).strict()
 
@@ -861,6 +917,7 @@ export const FBAOrderCountOutputTypeSelectSchema: z.ZodType<Prisma.FBAOrderCount
   boxes: z.boolean().optional(),
   logs: z.boolean().optional(),
   attachments: z.boolean().optional(),
+  bills: z.boolean().optional(),
 }).strict();
 
 export const FBAOrderSelectSchema: z.ZodType<Prisma.FBAOrderSelect> = z.object({
@@ -937,6 +994,7 @@ export const FBAOrderSelectSchema: z.ZodType<Prisma.FBAOrderSelect> = z.object({
   logs: z.union([z.boolean(),z.lazy(() => ShipmentLogFindManyArgsSchema)]).optional(),
   carrier: z.union([z.boolean(),z.lazy(() => CarrierArgsSchema)]).optional(),
   attachments: z.union([z.boolean(),z.lazy(() => AttachmentFindManyArgsSchema)]).optional(),
+  bills: z.union([z.boolean(),z.lazy(() => FinanceBillFindManyArgsSchema)]).optional(),
   _count: z.union([z.boolean(),z.lazy(() => FBAOrderCountOutputTypeArgsSchema)]).optional(),
 }).strict()
 
@@ -1409,6 +1467,91 @@ export const LoginLogSelectSchema: z.ZodType<Prisma.LoginLogSelect> = z.object({
   customer: z.union([z.boolean(),z.lazy(() => CustomerArgsSchema)]).optional(),
 }).strict()
 
+// FINANCE BILL
+//------------------------------------------------------
+
+export const FinanceBillIncludeSchema: z.ZodType<Prisma.FinanceBillInclude> = z.object({
+  customer: z.union([z.boolean(),z.lazy(() => CustomerArgsSchema)]).optional(),
+  waybills: z.union([z.boolean(),z.lazy(() => FBAOrderFindManyArgsSchema)]).optional(),
+  logs: z.union([z.boolean(),z.lazy(() => BillLogFindManyArgsSchema)]).optional(),
+  attachments: z.union([z.boolean(),z.lazy(() => BillAttachmentFindManyArgsSchema)]).optional(),
+  _count: z.union([z.boolean(),z.lazy(() => FinanceBillCountOutputTypeArgsSchema)]).optional(),
+}).strict()
+
+export const FinanceBillArgsSchema: z.ZodType<Prisma.FinanceBillDefaultArgs> = z.object({
+  select: z.lazy(() => FinanceBillSelectSchema).optional(),
+  include: z.lazy(() => FinanceBillIncludeSchema).optional(),
+}).strict();
+
+export const FinanceBillCountOutputTypeArgsSchema: z.ZodType<Prisma.FinanceBillCountOutputTypeDefaultArgs> = z.object({
+  select: z.lazy(() => FinanceBillCountOutputTypeSelectSchema).nullish(),
+}).strict();
+
+export const FinanceBillCountOutputTypeSelectSchema: z.ZodType<Prisma.FinanceBillCountOutputTypeSelect> = z.object({
+  waybills: z.boolean().optional(),
+  logs: z.boolean().optional(),
+  attachments: z.boolean().optional(),
+}).strict();
+
+export const FinanceBillSelectSchema: z.ZodType<Prisma.FinanceBillSelect> = z.object({
+  id: z.boolean().optional(),
+  billNo: z.boolean().optional(),
+  customerId: z.boolean().optional(),
+  totalAmount: z.boolean().optional(),
+  status: z.boolean().optional(),
+  createdAt: z.boolean().optional(),
+  updatedAt: z.boolean().optional(),
+  customer: z.union([z.boolean(),z.lazy(() => CustomerArgsSchema)]).optional(),
+  waybills: z.union([z.boolean(),z.lazy(() => FBAOrderFindManyArgsSchema)]).optional(),
+  logs: z.union([z.boolean(),z.lazy(() => BillLogFindManyArgsSchema)]).optional(),
+  attachments: z.union([z.boolean(),z.lazy(() => BillAttachmentFindManyArgsSchema)]).optional(),
+  _count: z.union([z.boolean(),z.lazy(() => FinanceBillCountOutputTypeArgsSchema)]).optional(),
+}).strict()
+
+// BILL LOG
+//------------------------------------------------------
+
+export const BillLogIncludeSchema: z.ZodType<Prisma.BillLogInclude> = z.object({
+  bill: z.union([z.boolean(),z.lazy(() => FinanceBillArgsSchema)]).optional(),
+}).strict()
+
+export const BillLogArgsSchema: z.ZodType<Prisma.BillLogDefaultArgs> = z.object({
+  select: z.lazy(() => BillLogSelectSchema).optional(),
+  include: z.lazy(() => BillLogIncludeSchema).optional(),
+}).strict();
+
+export const BillLogSelectSchema: z.ZodType<Prisma.BillLogSelect> = z.object({
+  id: z.boolean().optional(),
+  billId: z.boolean().optional(),
+  status: z.boolean().optional(),
+  remark: z.boolean().optional(),
+  timestamp: z.boolean().optional(),
+  bill: z.union([z.boolean(),z.lazy(() => FinanceBillArgsSchema)]).optional(),
+}).strict()
+
+// BILL ATTACHMENT
+//------------------------------------------------------
+
+export const BillAttachmentIncludeSchema: z.ZodType<Prisma.BillAttachmentInclude> = z.object({
+  bill: z.union([z.boolean(),z.lazy(() => FinanceBillArgsSchema)]).optional(),
+}).strict()
+
+export const BillAttachmentArgsSchema: z.ZodType<Prisma.BillAttachmentDefaultArgs> = z.object({
+  select: z.lazy(() => BillAttachmentSelectSchema).optional(),
+  include: z.lazy(() => BillAttachmentIncludeSchema).optional(),
+}).strict();
+
+export const BillAttachmentSelectSchema: z.ZodType<Prisma.BillAttachmentSelect> = z.object({
+  id: z.boolean().optional(),
+  billId: z.boolean().optional(),
+  url: z.boolean().optional(),
+  filename: z.boolean().optional(),
+  fileSize: z.boolean().optional(),
+  mimeType: z.boolean().optional(),
+  createdAt: z.boolean().optional(),
+  bill: z.union([z.boolean(),z.lazy(() => FinanceBillArgsSchema)]).optional(),
+}).strict()
+
 
 /////////////////////////////////////////
 // INPUT TYPES
@@ -1847,7 +1990,8 @@ export const CustomerWhereInputSchema: z.ZodType<Prisma.CustomerWhereInput> = z.
   fbaOrders: z.lazy(() => FBAOrderListRelationFilterSchema).optional(),
   orders: z.lazy(() => FBAOrderListRelationFilterSchema).optional(),
   positions: z.lazy(() => PositionListRelationFilterSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogListRelationFilterSchema).optional()
+  loginLogs: z.lazy(() => LoginLogListRelationFilterSchema).optional(),
+  bills: z.lazy(() => FinanceBillListRelationFilterSchema).optional()
 }).strict();
 
 export const CustomerOrderByWithRelationInputSchema: z.ZodType<Prisma.CustomerOrderByWithRelationInput> = z.object({
@@ -1872,7 +2016,8 @@ export const CustomerOrderByWithRelationInputSchema: z.ZodType<Prisma.CustomerOr
   fbaOrders: z.lazy(() => FBAOrderOrderByRelationAggregateInputSchema).optional(),
   orders: z.lazy(() => FBAOrderOrderByRelationAggregateInputSchema).optional(),
   positions: z.lazy(() => PositionOrderByRelationAggregateInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogOrderByRelationAggregateInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogOrderByRelationAggregateInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillOrderByRelationAggregateInputSchema).optional()
 }).strict();
 
 export const CustomerWhereUniqueInputSchema: z.ZodType<Prisma.CustomerWhereUniqueInput> = z.object({
@@ -1903,7 +2048,8 @@ export const CustomerWhereUniqueInputSchema: z.ZodType<Prisma.CustomerWhereUniqu
   fbaOrders: z.lazy(() => FBAOrderListRelationFilterSchema).optional(),
   orders: z.lazy(() => FBAOrderListRelationFilterSchema).optional(),
   positions: z.lazy(() => PositionListRelationFilterSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogListRelationFilterSchema).optional()
+  loginLogs: z.lazy(() => LoginLogListRelationFilterSchema).optional(),
+  bills: z.lazy(() => FinanceBillListRelationFilterSchema).optional()
 }).strict());
 
 export const CustomerOrderByWithAggregationInputSchema: z.ZodType<Prisma.CustomerOrderByWithAggregationInput> = z.object({
@@ -2026,7 +2172,8 @@ export const FBAOrderWhereInputSchema: z.ZodType<Prisma.FBAOrderWhereInput> = z.
   waybillRule: z.union([ z.lazy(() => WaybillRuleNullableScalarRelationFilterSchema),z.lazy(() => WaybillRuleWhereInputSchema) ]).optional().nullable(),
   logs: z.lazy(() => ShipmentLogListRelationFilterSchema).optional(),
   carrier: z.union([ z.lazy(() => CarrierNullableScalarRelationFilterSchema),z.lazy(() => CarrierWhereInputSchema) ]).optional().nullable(),
-  attachments: z.lazy(() => AttachmentListRelationFilterSchema).optional()
+  attachments: z.lazy(() => AttachmentListRelationFilterSchema).optional(),
+  bills: z.lazy(() => FinanceBillListRelationFilterSchema).optional()
 }).strict();
 
 export const FBAOrderOrderByWithRelationInputSchema: z.ZodType<Prisma.FBAOrderOrderByWithRelationInput> = z.object({
@@ -2102,7 +2249,8 @@ export const FBAOrderOrderByWithRelationInputSchema: z.ZodType<Prisma.FBAOrderOr
   waybillRule: z.lazy(() => WaybillRuleOrderByWithRelationInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogOrderByRelationAggregateInputSchema).optional(),
   carrier: z.lazy(() => CarrierOrderByWithRelationInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentOrderByRelationAggregateInputSchema).optional()
+  attachments: z.lazy(() => AttachmentOrderByRelationAggregateInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillOrderByRelationAggregateInputSchema).optional()
 }).strict();
 
 export const FBAOrderWhereUniqueInputSchema: z.ZodType<Prisma.FBAOrderWhereUniqueInput> = z.object({
@@ -2184,7 +2332,8 @@ export const FBAOrderWhereUniqueInputSchema: z.ZodType<Prisma.FBAOrderWhereUniqu
   waybillRule: z.union([ z.lazy(() => WaybillRuleNullableScalarRelationFilterSchema),z.lazy(() => WaybillRuleWhereInputSchema) ]).optional().nullable(),
   logs: z.lazy(() => ShipmentLogListRelationFilterSchema).optional(),
   carrier: z.union([ z.lazy(() => CarrierNullableScalarRelationFilterSchema),z.lazy(() => CarrierWhereInputSchema) ]).optional().nullable(),
-  attachments: z.lazy(() => AttachmentListRelationFilterSchema).optional()
+  attachments: z.lazy(() => AttachmentListRelationFilterSchema).optional(),
+  bills: z.lazy(() => FinanceBillListRelationFilterSchema).optional()
 }).strict());
 
 export const FBAOrderOrderByWithAggregationInputSchema: z.ZodType<Prisma.FBAOrderOrderByWithAggregationInput> = z.object({
@@ -3703,6 +3852,222 @@ export const LoginLogScalarWhereWithAggregatesInputSchema: z.ZodType<Prisma.Logi
   loginAt: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
 }).strict();
 
+export const FinanceBillWhereInputSchema: z.ZodType<Prisma.FinanceBillWhereInput> = z.object({
+  AND: z.union([ z.lazy(() => FinanceBillWhereInputSchema),z.lazy(() => FinanceBillWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FinanceBillWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FinanceBillWhereInputSchema),z.lazy(() => FinanceBillWhereInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  billNo: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  customerId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  totalAmount: z.union([ z.lazy(() => FloatFilterSchema),z.number() ]).optional(),
+  status: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  customer: z.union([ z.lazy(() => CustomerScalarRelationFilterSchema),z.lazy(() => CustomerWhereInputSchema) ]).optional(),
+  waybills: z.lazy(() => FBAOrderListRelationFilterSchema).optional(),
+  logs: z.lazy(() => BillLogListRelationFilterSchema).optional(),
+  attachments: z.lazy(() => BillAttachmentListRelationFilterSchema).optional()
+}).strict();
+
+export const FinanceBillOrderByWithRelationInputSchema: z.ZodType<Prisma.FinanceBillOrderByWithRelationInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  billNo: z.lazy(() => SortOrderSchema).optional(),
+  customerId: z.lazy(() => SortOrderSchema).optional(),
+  totalAmount: z.lazy(() => SortOrderSchema).optional(),
+  status: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional(),
+  customer: z.lazy(() => CustomerOrderByWithRelationInputSchema).optional(),
+  waybills: z.lazy(() => FBAOrderOrderByRelationAggregateInputSchema).optional(),
+  logs: z.lazy(() => BillLogOrderByRelationAggregateInputSchema).optional(),
+  attachments: z.lazy(() => BillAttachmentOrderByRelationAggregateInputSchema).optional()
+}).strict();
+
+export const FinanceBillWhereUniqueInputSchema: z.ZodType<Prisma.FinanceBillWhereUniqueInput> = z.union([
+  z.object({
+    id: z.string().uuid(),
+    billNo: z.string()
+  }),
+  z.object({
+    id: z.string().uuid(),
+  }),
+  z.object({
+    billNo: z.string(),
+  }),
+])
+.and(z.object({
+  id: z.string().uuid().optional(),
+  billNo: z.string().optional(),
+  AND: z.union([ z.lazy(() => FinanceBillWhereInputSchema),z.lazy(() => FinanceBillWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FinanceBillWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FinanceBillWhereInputSchema),z.lazy(() => FinanceBillWhereInputSchema).array() ]).optional(),
+  customerId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  totalAmount: z.union([ z.lazy(() => FloatFilterSchema),z.number() ]).optional(),
+  status: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  customer: z.union([ z.lazy(() => CustomerScalarRelationFilterSchema),z.lazy(() => CustomerWhereInputSchema) ]).optional(),
+  waybills: z.lazy(() => FBAOrderListRelationFilterSchema).optional(),
+  logs: z.lazy(() => BillLogListRelationFilterSchema).optional(),
+  attachments: z.lazy(() => BillAttachmentListRelationFilterSchema).optional()
+}).strict());
+
+export const FinanceBillOrderByWithAggregationInputSchema: z.ZodType<Prisma.FinanceBillOrderByWithAggregationInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  billNo: z.lazy(() => SortOrderSchema).optional(),
+  customerId: z.lazy(() => SortOrderSchema).optional(),
+  totalAmount: z.lazy(() => SortOrderSchema).optional(),
+  status: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional(),
+  _count: z.lazy(() => FinanceBillCountOrderByAggregateInputSchema).optional(),
+  _avg: z.lazy(() => FinanceBillAvgOrderByAggregateInputSchema).optional(),
+  _max: z.lazy(() => FinanceBillMaxOrderByAggregateInputSchema).optional(),
+  _min: z.lazy(() => FinanceBillMinOrderByAggregateInputSchema).optional(),
+  _sum: z.lazy(() => FinanceBillSumOrderByAggregateInputSchema).optional()
+}).strict();
+
+export const FinanceBillScalarWhereWithAggregatesInputSchema: z.ZodType<Prisma.FinanceBillScalarWhereWithAggregatesInput> = z.object({
+  AND: z.union([ z.lazy(() => FinanceBillScalarWhereWithAggregatesInputSchema),z.lazy(() => FinanceBillScalarWhereWithAggregatesInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FinanceBillScalarWhereWithAggregatesInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FinanceBillScalarWhereWithAggregatesInputSchema),z.lazy(() => FinanceBillScalarWhereWithAggregatesInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  billNo: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  customerId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  totalAmount: z.union([ z.lazy(() => FloatWithAggregatesFilterSchema),z.number() ]).optional(),
+  status: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
+}).strict();
+
+export const BillLogWhereInputSchema: z.ZodType<Prisma.BillLogWhereInput> = z.object({
+  AND: z.union([ z.lazy(() => BillLogWhereInputSchema),z.lazy(() => BillLogWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => BillLogWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => BillLogWhereInputSchema),z.lazy(() => BillLogWhereInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  billId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  status: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  remark: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  timestamp: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  bill: z.union([ z.lazy(() => FinanceBillScalarRelationFilterSchema),z.lazy(() => FinanceBillWhereInputSchema) ]).optional(),
+}).strict();
+
+export const BillLogOrderByWithRelationInputSchema: z.ZodType<Prisma.BillLogOrderByWithRelationInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  billId: z.lazy(() => SortOrderSchema).optional(),
+  status: z.lazy(() => SortOrderSchema).optional(),
+  remark: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  timestamp: z.lazy(() => SortOrderSchema).optional(),
+  bill: z.lazy(() => FinanceBillOrderByWithRelationInputSchema).optional()
+}).strict();
+
+export const BillLogWhereUniqueInputSchema: z.ZodType<Prisma.BillLogWhereUniqueInput> = z.object({
+  id: z.string().uuid()
+})
+.and(z.object({
+  id: z.string().uuid().optional(),
+  AND: z.union([ z.lazy(() => BillLogWhereInputSchema),z.lazy(() => BillLogWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => BillLogWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => BillLogWhereInputSchema),z.lazy(() => BillLogWhereInputSchema).array() ]).optional(),
+  billId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  status: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  remark: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  timestamp: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  bill: z.union([ z.lazy(() => FinanceBillScalarRelationFilterSchema),z.lazy(() => FinanceBillWhereInputSchema) ]).optional(),
+}).strict());
+
+export const BillLogOrderByWithAggregationInputSchema: z.ZodType<Prisma.BillLogOrderByWithAggregationInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  billId: z.lazy(() => SortOrderSchema).optional(),
+  status: z.lazy(() => SortOrderSchema).optional(),
+  remark: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  timestamp: z.lazy(() => SortOrderSchema).optional(),
+  _count: z.lazy(() => BillLogCountOrderByAggregateInputSchema).optional(),
+  _max: z.lazy(() => BillLogMaxOrderByAggregateInputSchema).optional(),
+  _min: z.lazy(() => BillLogMinOrderByAggregateInputSchema).optional()
+}).strict();
+
+export const BillLogScalarWhereWithAggregatesInputSchema: z.ZodType<Prisma.BillLogScalarWhereWithAggregatesInput> = z.object({
+  AND: z.union([ z.lazy(() => BillLogScalarWhereWithAggregatesInputSchema),z.lazy(() => BillLogScalarWhereWithAggregatesInputSchema).array() ]).optional(),
+  OR: z.lazy(() => BillLogScalarWhereWithAggregatesInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => BillLogScalarWhereWithAggregatesInputSchema),z.lazy(() => BillLogScalarWhereWithAggregatesInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  billId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  status: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  remark: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
+  timestamp: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
+}).strict();
+
+export const BillAttachmentWhereInputSchema: z.ZodType<Prisma.BillAttachmentWhereInput> = z.object({
+  AND: z.union([ z.lazy(() => BillAttachmentWhereInputSchema),z.lazy(() => BillAttachmentWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => BillAttachmentWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => BillAttachmentWhereInputSchema),z.lazy(() => BillAttachmentWhereInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  billId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  url: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  filename: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  fileSize: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
+  mimeType: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  bill: z.union([ z.lazy(() => FinanceBillScalarRelationFilterSchema),z.lazy(() => FinanceBillWhereInputSchema) ]).optional(),
+}).strict();
+
+export const BillAttachmentOrderByWithRelationInputSchema: z.ZodType<Prisma.BillAttachmentOrderByWithRelationInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  billId: z.lazy(() => SortOrderSchema).optional(),
+  url: z.lazy(() => SortOrderSchema).optional(),
+  filename: z.lazy(() => SortOrderSchema).optional(),
+  fileSize: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  mimeType: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  bill: z.lazy(() => FinanceBillOrderByWithRelationInputSchema).optional()
+}).strict();
+
+export const BillAttachmentWhereUniqueInputSchema: z.ZodType<Prisma.BillAttachmentWhereUniqueInput> = z.object({
+  id: z.string().uuid()
+})
+.and(z.object({
+  id: z.string().uuid().optional(),
+  AND: z.union([ z.lazy(() => BillAttachmentWhereInputSchema),z.lazy(() => BillAttachmentWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => BillAttachmentWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => BillAttachmentWhereInputSchema),z.lazy(() => BillAttachmentWhereInputSchema).array() ]).optional(),
+  billId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  url: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  filename: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  fileSize: z.union([ z.lazy(() => IntNullableFilterSchema),z.number().int() ]).optional().nullable(),
+  mimeType: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  bill: z.union([ z.lazy(() => FinanceBillScalarRelationFilterSchema),z.lazy(() => FinanceBillWhereInputSchema) ]).optional(),
+}).strict());
+
+export const BillAttachmentOrderByWithAggregationInputSchema: z.ZodType<Prisma.BillAttachmentOrderByWithAggregationInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  billId: z.lazy(() => SortOrderSchema).optional(),
+  url: z.lazy(() => SortOrderSchema).optional(),
+  filename: z.lazy(() => SortOrderSchema).optional(),
+  fileSize: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  mimeType: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  _count: z.lazy(() => BillAttachmentCountOrderByAggregateInputSchema).optional(),
+  _avg: z.lazy(() => BillAttachmentAvgOrderByAggregateInputSchema).optional(),
+  _max: z.lazy(() => BillAttachmentMaxOrderByAggregateInputSchema).optional(),
+  _min: z.lazy(() => BillAttachmentMinOrderByAggregateInputSchema).optional(),
+  _sum: z.lazy(() => BillAttachmentSumOrderByAggregateInputSchema).optional()
+}).strict();
+
+export const BillAttachmentScalarWhereWithAggregatesInputSchema: z.ZodType<Prisma.BillAttachmentScalarWhereWithAggregatesInput> = z.object({
+  AND: z.union([ z.lazy(() => BillAttachmentScalarWhereWithAggregatesInputSchema),z.lazy(() => BillAttachmentScalarWhereWithAggregatesInputSchema).array() ]).optional(),
+  OR: z.lazy(() => BillAttachmentScalarWhereWithAggregatesInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => BillAttachmentScalarWhereWithAggregatesInputSchema),z.lazy(() => BillAttachmentScalarWhereWithAggregatesInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  billId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  url: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  filename: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  fileSize: z.union([ z.lazy(() => IntNullableWithAggregatesFilterSchema),z.number() ]).optional().nullable(),
+  mimeType: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
+  createdAt: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
+}).strict();
+
 export const TenantCreateInputSchema: z.ZodType<Prisma.TenantCreateInput> = z.object({
   id: z.string().uuid().optional(),
   name: z.string(),
@@ -4151,7 +4516,8 @@ export const CustomerCreateInputSchema: z.ZodType<Prisma.CustomerCreateInput> = 
   fbaOrders: z.lazy(() => FBAOrderCreateNestedManyWithoutSenderInputSchema).optional(),
   orders: z.lazy(() => FBAOrderCreateNestedManyWithoutCustomerInputSchema).optional(),
   positions: z.lazy(() => PositionCreateNestedManyWithoutCustomerInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogCreateNestedManyWithoutCustomerInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogCreateNestedManyWithoutCustomerInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillCreateNestedManyWithoutCustomerInputSchema).optional()
 }).strict();
 
 export const CustomerUncheckedCreateInputSchema: z.ZodType<Prisma.CustomerUncheckedCreateInput> = z.object({
@@ -4174,7 +4540,8 @@ export const CustomerUncheckedCreateInputSchema: z.ZodType<Prisma.CustomerUnchec
   fbaOrders: z.lazy(() => FBAOrderUncheckedCreateNestedManyWithoutSenderInputSchema).optional(),
   orders: z.lazy(() => FBAOrderUncheckedCreateNestedManyWithoutCustomerInputSchema).optional(),
   positions: z.lazy(() => PositionUncheckedCreateNestedManyWithoutCustomerInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogUncheckedCreateNestedManyWithoutCustomerInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogUncheckedCreateNestedManyWithoutCustomerInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedCreateNestedManyWithoutCustomerInputSchema).optional()
 }).strict();
 
 export const CustomerUpdateInputSchema: z.ZodType<Prisma.CustomerUpdateInput> = z.object({
@@ -4197,7 +4564,8 @@ export const CustomerUpdateInputSchema: z.ZodType<Prisma.CustomerUpdateInput> = 
   fbaOrders: z.lazy(() => FBAOrderUpdateManyWithoutSenderNestedInputSchema).optional(),
   orders: z.lazy(() => FBAOrderUpdateManyWithoutCustomerNestedInputSchema).optional(),
   positions: z.lazy(() => PositionUpdateManyWithoutCustomerNestedInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogUpdateManyWithoutCustomerNestedInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogUpdateManyWithoutCustomerNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUpdateManyWithoutCustomerNestedInputSchema).optional()
 }).strict();
 
 export const CustomerUncheckedUpdateInputSchema: z.ZodType<Prisma.CustomerUncheckedUpdateInput> = z.object({
@@ -4220,7 +4588,8 @@ export const CustomerUncheckedUpdateInputSchema: z.ZodType<Prisma.CustomerUnchec
   fbaOrders: z.lazy(() => FBAOrderUncheckedUpdateManyWithoutSenderNestedInputSchema).optional(),
   orders: z.lazy(() => FBAOrderUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional(),
   positions: z.lazy(() => PositionUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional()
 }).strict();
 
 export const CustomerCreateManyInputSchema: z.ZodType<Prisma.CustomerCreateManyInput> = z.object({
@@ -4344,7 +4713,8 @@ export const FBAOrderCreateInputSchema: z.ZodType<Prisma.FBAOrderCreateInput> = 
   waybillRule: z.lazy(() => WaybillRuleCreateNestedOneWithoutFbaOrdersInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogCreateNestedManyWithoutShipmentInputSchema).optional(),
   carrier: z.lazy(() => CarrierCreateNestedOneWithoutFbaOrdersInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentCreateNestedManyWithoutWaybillInputSchema).optional()
+  attachments: z.lazy(() => AttachmentCreateNestedManyWithoutWaybillInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillCreateNestedManyWithoutWaybillsInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedCreateInputSchema: z.ZodType<Prisma.FBAOrderUncheckedCreateInput> = z.object({
@@ -4413,7 +4783,8 @@ export const FBAOrderUncheckedCreateInputSchema: z.ZodType<Prisma.FBAOrderUnchec
   carrierId: z.string().optional().nullable(),
   boxes: z.lazy(() => BoxUncheckedCreateNestedManyWithoutFbaOrderInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUncheckedCreateNestedManyWithoutShipmentInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUncheckedCreateNestedManyWithoutWaybillInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUncheckedCreateNestedManyWithoutWaybillInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedCreateNestedManyWithoutWaybillsInputSchema).optional()
 }).strict();
 
 export const FBAOrderUpdateInputSchema: z.ZodType<Prisma.FBAOrderUpdateInput> = z.object({
@@ -4482,7 +4853,8 @@ export const FBAOrderUpdateInputSchema: z.ZodType<Prisma.FBAOrderUpdateInput> = 
   waybillRule: z.lazy(() => WaybillRuleUpdateOneWithoutFbaOrdersNestedInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUpdateManyWithoutShipmentNestedInputSchema).optional(),
   carrier: z.lazy(() => CarrierUpdateOneWithoutFbaOrdersNestedInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUpdateManyWithoutWaybillNestedInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUpdateManyWithoutWaybillNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUpdateManyWithoutWaybillsNestedInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedUpdateInputSchema: z.ZodType<Prisma.FBAOrderUncheckedUpdateInput> = z.object({
@@ -4551,7 +4923,8 @@ export const FBAOrderUncheckedUpdateInputSchema: z.ZodType<Prisma.FBAOrderUnchec
   carrierId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   boxes: z.lazy(() => BoxUncheckedUpdateManyWithoutFbaOrderNestedInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUncheckedUpdateManyWithoutShipmentNestedInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUncheckedUpdateManyWithoutWaybillNestedInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUncheckedUpdateManyWithoutWaybillNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedUpdateManyWithoutWaybillsNestedInputSchema).optional()
 }).strict();
 
 export const FBAOrderCreateManyInputSchema: z.ZodType<Prisma.FBAOrderCreateManyInput> = z.object({
@@ -6244,6 +6617,211 @@ export const LoginLogUncheckedUpdateManyInputSchema: z.ZodType<Prisma.LoginLogUn
   loginAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
 
+export const FinanceBillCreateInputSchema: z.ZodType<Prisma.FinanceBillCreateInput> = z.object({
+  id: z.string().uuid().optional(),
+  billNo: z.string(),
+  totalAmount: z.number(),
+  status: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  customer: z.lazy(() => CustomerCreateNestedOneWithoutBillsInputSchema),
+  waybills: z.lazy(() => FBAOrderCreateNestedManyWithoutBillsInputSchema).optional(),
+  logs: z.lazy(() => BillLogCreateNestedManyWithoutBillInputSchema).optional(),
+  attachments: z.lazy(() => BillAttachmentCreateNestedManyWithoutBillInputSchema).optional()
+}).strict();
+
+export const FinanceBillUncheckedCreateInputSchema: z.ZodType<Prisma.FinanceBillUncheckedCreateInput> = z.object({
+  id: z.string().uuid().optional(),
+  billNo: z.string(),
+  customerId: z.string(),
+  totalAmount: z.number(),
+  status: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  waybills: z.lazy(() => FBAOrderUncheckedCreateNestedManyWithoutBillsInputSchema).optional(),
+  logs: z.lazy(() => BillLogUncheckedCreateNestedManyWithoutBillInputSchema).optional(),
+  attachments: z.lazy(() => BillAttachmentUncheckedCreateNestedManyWithoutBillInputSchema).optional()
+}).strict();
+
+export const FinanceBillUpdateInputSchema: z.ZodType<Prisma.FinanceBillUpdateInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  billNo: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  totalAmount: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
+  status: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  customer: z.lazy(() => CustomerUpdateOneRequiredWithoutBillsNestedInputSchema).optional(),
+  waybills: z.lazy(() => FBAOrderUpdateManyWithoutBillsNestedInputSchema).optional(),
+  logs: z.lazy(() => BillLogUpdateManyWithoutBillNestedInputSchema).optional(),
+  attachments: z.lazy(() => BillAttachmentUpdateManyWithoutBillNestedInputSchema).optional()
+}).strict();
+
+export const FinanceBillUncheckedUpdateInputSchema: z.ZodType<Prisma.FinanceBillUncheckedUpdateInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  billNo: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  customerId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  totalAmount: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
+  status: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  waybills: z.lazy(() => FBAOrderUncheckedUpdateManyWithoutBillsNestedInputSchema).optional(),
+  logs: z.lazy(() => BillLogUncheckedUpdateManyWithoutBillNestedInputSchema).optional(),
+  attachments: z.lazy(() => BillAttachmentUncheckedUpdateManyWithoutBillNestedInputSchema).optional()
+}).strict();
+
+export const FinanceBillCreateManyInputSchema: z.ZodType<Prisma.FinanceBillCreateManyInput> = z.object({
+  id: z.string().uuid().optional(),
+  billNo: z.string(),
+  customerId: z.string(),
+  totalAmount: z.number(),
+  status: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional()
+}).strict();
+
+export const FinanceBillUpdateManyMutationInputSchema: z.ZodType<Prisma.FinanceBillUpdateManyMutationInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  billNo: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  totalAmount: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
+  status: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FinanceBillUncheckedUpdateManyInputSchema: z.ZodType<Prisma.FinanceBillUncheckedUpdateManyInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  billNo: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  customerId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  totalAmount: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
+  status: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const BillLogCreateInputSchema: z.ZodType<Prisma.BillLogCreateInput> = z.object({
+  id: z.string().uuid().optional(),
+  status: z.string(),
+  remark: z.string().optional().nullable(),
+  timestamp: z.coerce.date().optional(),
+  bill: z.lazy(() => FinanceBillCreateNestedOneWithoutLogsInputSchema)
+}).strict();
+
+export const BillLogUncheckedCreateInputSchema: z.ZodType<Prisma.BillLogUncheckedCreateInput> = z.object({
+  id: z.string().uuid().optional(),
+  billId: z.string(),
+  status: z.string(),
+  remark: z.string().optional().nullable(),
+  timestamp: z.coerce.date().optional()
+}).strict();
+
+export const BillLogUpdateInputSchema: z.ZodType<Prisma.BillLogUpdateInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  status: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  remark: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  timestamp: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  bill: z.lazy(() => FinanceBillUpdateOneRequiredWithoutLogsNestedInputSchema).optional()
+}).strict();
+
+export const BillLogUncheckedUpdateInputSchema: z.ZodType<Prisma.BillLogUncheckedUpdateInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  billId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  status: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  remark: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  timestamp: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const BillLogCreateManyInputSchema: z.ZodType<Prisma.BillLogCreateManyInput> = z.object({
+  id: z.string().uuid().optional(),
+  billId: z.string(),
+  status: z.string(),
+  remark: z.string().optional().nullable(),
+  timestamp: z.coerce.date().optional()
+}).strict();
+
+export const BillLogUpdateManyMutationInputSchema: z.ZodType<Prisma.BillLogUpdateManyMutationInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  status: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  remark: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  timestamp: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const BillLogUncheckedUpdateManyInputSchema: z.ZodType<Prisma.BillLogUncheckedUpdateManyInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  billId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  status: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  remark: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  timestamp: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const BillAttachmentCreateInputSchema: z.ZodType<Prisma.BillAttachmentCreateInput> = z.object({
+  id: z.string().uuid().optional(),
+  url: z.string(),
+  filename: z.string(),
+  fileSize: z.number().int().optional().nullable(),
+  mimeType: z.string().optional().nullable(),
+  createdAt: z.coerce.date().optional(),
+  bill: z.lazy(() => FinanceBillCreateNestedOneWithoutAttachmentsInputSchema)
+}).strict();
+
+export const BillAttachmentUncheckedCreateInputSchema: z.ZodType<Prisma.BillAttachmentUncheckedCreateInput> = z.object({
+  id: z.string().uuid().optional(),
+  billId: z.string(),
+  url: z.string(),
+  filename: z.string(),
+  fileSize: z.number().int().optional().nullable(),
+  mimeType: z.string().optional().nullable(),
+  createdAt: z.coerce.date().optional()
+}).strict();
+
+export const BillAttachmentUpdateInputSchema: z.ZodType<Prisma.BillAttachmentUpdateInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  url: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  filename: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  fileSize: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  mimeType: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  bill: z.lazy(() => FinanceBillUpdateOneRequiredWithoutAttachmentsNestedInputSchema).optional()
+}).strict();
+
+export const BillAttachmentUncheckedUpdateInputSchema: z.ZodType<Prisma.BillAttachmentUncheckedUpdateInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  billId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  url: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  filename: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  fileSize: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  mimeType: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const BillAttachmentCreateManyInputSchema: z.ZodType<Prisma.BillAttachmentCreateManyInput> = z.object({
+  id: z.string().uuid().optional(),
+  billId: z.string(),
+  url: z.string(),
+  filename: z.string(),
+  fileSize: z.number().int().optional().nullable(),
+  mimeType: z.string().optional().nullable(),
+  createdAt: z.coerce.date().optional()
+}).strict();
+
+export const BillAttachmentUpdateManyMutationInputSchema: z.ZodType<Prisma.BillAttachmentUpdateManyMutationInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  url: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  filename: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  fileSize: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  mimeType: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const BillAttachmentUncheckedUpdateManyInputSchema: z.ZodType<Prisma.BillAttachmentUncheckedUpdateManyInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  billId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  url: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  filename: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  fileSize: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  mimeType: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
 export const StringFilterSchema: z.ZodType<Prisma.StringFilter> = z.object({
   equals: z.string().optional(),
   in: z.string().array().optional(),
@@ -6782,11 +7360,21 @@ export const LoginLogListRelationFilterSchema: z.ZodType<Prisma.LoginLogListRela
   none: z.lazy(() => LoginLogWhereInputSchema).optional()
 }).strict();
 
+export const FinanceBillListRelationFilterSchema: z.ZodType<Prisma.FinanceBillListRelationFilter> = z.object({
+  every: z.lazy(() => FinanceBillWhereInputSchema).optional(),
+  some: z.lazy(() => FinanceBillWhereInputSchema).optional(),
+  none: z.lazy(() => FinanceBillWhereInputSchema).optional()
+}).strict();
+
 export const PositionOrderByRelationAggregateInputSchema: z.ZodType<Prisma.PositionOrderByRelationAggregateInput> = z.object({
   _count: z.lazy(() => SortOrderSchema).optional()
 }).strict();
 
 export const LoginLogOrderByRelationAggregateInputSchema: z.ZodType<Prisma.LoginLogOrderByRelationAggregateInput> = z.object({
+  _count: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FinanceBillOrderByRelationAggregateInputSchema: z.ZodType<Prisma.FinanceBillOrderByRelationAggregateInput> = z.object({
   _count: z.lazy(() => SortOrderSchema).optional()
 }).strict();
 
@@ -8045,6 +8633,131 @@ export const LoginLogMinOrderByAggregateInputSchema: z.ZodType<Prisma.LoginLogMi
   loginAt: z.lazy(() => SortOrderSchema).optional()
 }).strict();
 
+export const BillLogListRelationFilterSchema: z.ZodType<Prisma.BillLogListRelationFilter> = z.object({
+  every: z.lazy(() => BillLogWhereInputSchema).optional(),
+  some: z.lazy(() => BillLogWhereInputSchema).optional(),
+  none: z.lazy(() => BillLogWhereInputSchema).optional()
+}).strict();
+
+export const BillAttachmentListRelationFilterSchema: z.ZodType<Prisma.BillAttachmentListRelationFilter> = z.object({
+  every: z.lazy(() => BillAttachmentWhereInputSchema).optional(),
+  some: z.lazy(() => BillAttachmentWhereInputSchema).optional(),
+  none: z.lazy(() => BillAttachmentWhereInputSchema).optional()
+}).strict();
+
+export const BillLogOrderByRelationAggregateInputSchema: z.ZodType<Prisma.BillLogOrderByRelationAggregateInput> = z.object({
+  _count: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const BillAttachmentOrderByRelationAggregateInputSchema: z.ZodType<Prisma.BillAttachmentOrderByRelationAggregateInput> = z.object({
+  _count: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FinanceBillCountOrderByAggregateInputSchema: z.ZodType<Prisma.FinanceBillCountOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  billNo: z.lazy(() => SortOrderSchema).optional(),
+  customerId: z.lazy(() => SortOrderSchema).optional(),
+  totalAmount: z.lazy(() => SortOrderSchema).optional(),
+  status: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FinanceBillAvgOrderByAggregateInputSchema: z.ZodType<Prisma.FinanceBillAvgOrderByAggregateInput> = z.object({
+  totalAmount: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FinanceBillMaxOrderByAggregateInputSchema: z.ZodType<Prisma.FinanceBillMaxOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  billNo: z.lazy(() => SortOrderSchema).optional(),
+  customerId: z.lazy(() => SortOrderSchema).optional(),
+  totalAmount: z.lazy(() => SortOrderSchema).optional(),
+  status: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FinanceBillMinOrderByAggregateInputSchema: z.ZodType<Prisma.FinanceBillMinOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  billNo: z.lazy(() => SortOrderSchema).optional(),
+  customerId: z.lazy(() => SortOrderSchema).optional(),
+  totalAmount: z.lazy(() => SortOrderSchema).optional(),
+  status: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FinanceBillSumOrderByAggregateInputSchema: z.ZodType<Prisma.FinanceBillSumOrderByAggregateInput> = z.object({
+  totalAmount: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FinanceBillScalarRelationFilterSchema: z.ZodType<Prisma.FinanceBillScalarRelationFilter> = z.object({
+  is: z.lazy(() => FinanceBillWhereInputSchema).optional(),
+  isNot: z.lazy(() => FinanceBillWhereInputSchema).optional()
+}).strict();
+
+export const BillLogCountOrderByAggregateInputSchema: z.ZodType<Prisma.BillLogCountOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  billId: z.lazy(() => SortOrderSchema).optional(),
+  status: z.lazy(() => SortOrderSchema).optional(),
+  remark: z.lazy(() => SortOrderSchema).optional(),
+  timestamp: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const BillLogMaxOrderByAggregateInputSchema: z.ZodType<Prisma.BillLogMaxOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  billId: z.lazy(() => SortOrderSchema).optional(),
+  status: z.lazy(() => SortOrderSchema).optional(),
+  remark: z.lazy(() => SortOrderSchema).optional(),
+  timestamp: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const BillLogMinOrderByAggregateInputSchema: z.ZodType<Prisma.BillLogMinOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  billId: z.lazy(() => SortOrderSchema).optional(),
+  status: z.lazy(() => SortOrderSchema).optional(),
+  remark: z.lazy(() => SortOrderSchema).optional(),
+  timestamp: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const BillAttachmentCountOrderByAggregateInputSchema: z.ZodType<Prisma.BillAttachmentCountOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  billId: z.lazy(() => SortOrderSchema).optional(),
+  url: z.lazy(() => SortOrderSchema).optional(),
+  filename: z.lazy(() => SortOrderSchema).optional(),
+  fileSize: z.lazy(() => SortOrderSchema).optional(),
+  mimeType: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const BillAttachmentAvgOrderByAggregateInputSchema: z.ZodType<Prisma.BillAttachmentAvgOrderByAggregateInput> = z.object({
+  fileSize: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const BillAttachmentMaxOrderByAggregateInputSchema: z.ZodType<Prisma.BillAttachmentMaxOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  billId: z.lazy(() => SortOrderSchema).optional(),
+  url: z.lazy(() => SortOrderSchema).optional(),
+  filename: z.lazy(() => SortOrderSchema).optional(),
+  fileSize: z.lazy(() => SortOrderSchema).optional(),
+  mimeType: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const BillAttachmentMinOrderByAggregateInputSchema: z.ZodType<Prisma.BillAttachmentMinOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  billId: z.lazy(() => SortOrderSchema).optional(),
+  url: z.lazy(() => SortOrderSchema).optional(),
+  filename: z.lazy(() => SortOrderSchema).optional(),
+  fileSize: z.lazy(() => SortOrderSchema).optional(),
+  mimeType: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const BillAttachmentSumOrderByAggregateInputSchema: z.ZodType<Prisma.BillAttachmentSumOrderByAggregateInput> = z.object({
+  fileSize: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
 export const UserCreateNestedManyWithoutTenantInputSchema: z.ZodType<Prisma.UserCreateNestedManyWithoutTenantInput> = z.object({
   create: z.union([ z.lazy(() => UserCreateWithoutTenantInputSchema),z.lazy(() => UserCreateWithoutTenantInputSchema).array(),z.lazy(() => UserUncheckedCreateWithoutTenantInputSchema),z.lazy(() => UserUncheckedCreateWithoutTenantInputSchema).array() ]).optional(),
   connectOrCreate: z.union([ z.lazy(() => UserCreateOrConnectWithoutTenantInputSchema),z.lazy(() => UserCreateOrConnectWithoutTenantInputSchema).array() ]).optional(),
@@ -8611,6 +9324,13 @@ export const LoginLogCreateNestedManyWithoutCustomerInputSchema: z.ZodType<Prism
   connect: z.union([ z.lazy(() => LoginLogWhereUniqueInputSchema),z.lazy(() => LoginLogWhereUniqueInputSchema).array() ]).optional(),
 }).strict();
 
+export const FinanceBillCreateNestedManyWithoutCustomerInputSchema: z.ZodType<Prisma.FinanceBillCreateNestedManyWithoutCustomerInput> = z.object({
+  create: z.union([ z.lazy(() => FinanceBillCreateWithoutCustomerInputSchema),z.lazy(() => FinanceBillCreateWithoutCustomerInputSchema).array(),z.lazy(() => FinanceBillUncheckedCreateWithoutCustomerInputSchema),z.lazy(() => FinanceBillUncheckedCreateWithoutCustomerInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinanceBillCreateOrConnectWithoutCustomerInputSchema),z.lazy(() => FinanceBillCreateOrConnectWithoutCustomerInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FinanceBillCreateManyCustomerInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => FinanceBillWhereUniqueInputSchema),z.lazy(() => FinanceBillWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
 export const FBAOrderUncheckedCreateNestedManyWithoutSenderInputSchema: z.ZodType<Prisma.FBAOrderUncheckedCreateNestedManyWithoutSenderInput> = z.object({
   create: z.union([ z.lazy(() => FBAOrderCreateWithoutSenderInputSchema),z.lazy(() => FBAOrderCreateWithoutSenderInputSchema).array(),z.lazy(() => FBAOrderUncheckedCreateWithoutSenderInputSchema),z.lazy(() => FBAOrderUncheckedCreateWithoutSenderInputSchema).array() ]).optional(),
   connectOrCreate: z.union([ z.lazy(() => FBAOrderCreateOrConnectWithoutSenderInputSchema),z.lazy(() => FBAOrderCreateOrConnectWithoutSenderInputSchema).array() ]).optional(),
@@ -8637,6 +9357,13 @@ export const LoginLogUncheckedCreateNestedManyWithoutCustomerInputSchema: z.ZodT
   connectOrCreate: z.union([ z.lazy(() => LoginLogCreateOrConnectWithoutCustomerInputSchema),z.lazy(() => LoginLogCreateOrConnectWithoutCustomerInputSchema).array() ]).optional(),
   createMany: z.lazy(() => LoginLogCreateManyCustomerInputEnvelopeSchema).optional(),
   connect: z.union([ z.lazy(() => LoginLogWhereUniqueInputSchema),z.lazy(() => LoginLogWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
+export const FinanceBillUncheckedCreateNestedManyWithoutCustomerInputSchema: z.ZodType<Prisma.FinanceBillUncheckedCreateNestedManyWithoutCustomerInput> = z.object({
+  create: z.union([ z.lazy(() => FinanceBillCreateWithoutCustomerInputSchema),z.lazy(() => FinanceBillCreateWithoutCustomerInputSchema).array(),z.lazy(() => FinanceBillUncheckedCreateWithoutCustomerInputSchema),z.lazy(() => FinanceBillUncheckedCreateWithoutCustomerInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinanceBillCreateOrConnectWithoutCustomerInputSchema),z.lazy(() => FinanceBillCreateOrConnectWithoutCustomerInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FinanceBillCreateManyCustomerInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => FinanceBillWhereUniqueInputSchema),z.lazy(() => FinanceBillWhereUniqueInputSchema).array() ]).optional(),
 }).strict();
 
 export const EnumCustomerStatusFieldUpdateOperationsInputSchema: z.ZodType<Prisma.EnumCustomerStatusFieldUpdateOperationsInput> = z.object({
@@ -8721,6 +9448,20 @@ export const LoginLogUpdateManyWithoutCustomerNestedInputSchema: z.ZodType<Prism
   deleteMany: z.union([ z.lazy(() => LoginLogScalarWhereInputSchema),z.lazy(() => LoginLogScalarWhereInputSchema).array() ]).optional(),
 }).strict();
 
+export const FinanceBillUpdateManyWithoutCustomerNestedInputSchema: z.ZodType<Prisma.FinanceBillUpdateManyWithoutCustomerNestedInput> = z.object({
+  create: z.union([ z.lazy(() => FinanceBillCreateWithoutCustomerInputSchema),z.lazy(() => FinanceBillCreateWithoutCustomerInputSchema).array(),z.lazy(() => FinanceBillUncheckedCreateWithoutCustomerInputSchema),z.lazy(() => FinanceBillUncheckedCreateWithoutCustomerInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinanceBillCreateOrConnectWithoutCustomerInputSchema),z.lazy(() => FinanceBillCreateOrConnectWithoutCustomerInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => FinanceBillUpsertWithWhereUniqueWithoutCustomerInputSchema),z.lazy(() => FinanceBillUpsertWithWhereUniqueWithoutCustomerInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FinanceBillCreateManyCustomerInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => FinanceBillWhereUniqueInputSchema),z.lazy(() => FinanceBillWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => FinanceBillWhereUniqueInputSchema),z.lazy(() => FinanceBillWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => FinanceBillWhereUniqueInputSchema),z.lazy(() => FinanceBillWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => FinanceBillWhereUniqueInputSchema),z.lazy(() => FinanceBillWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => FinanceBillUpdateWithWhereUniqueWithoutCustomerInputSchema),z.lazy(() => FinanceBillUpdateWithWhereUniqueWithoutCustomerInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => FinanceBillUpdateManyWithWhereWithoutCustomerInputSchema),z.lazy(() => FinanceBillUpdateManyWithWhereWithoutCustomerInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => FinanceBillScalarWhereInputSchema),z.lazy(() => FinanceBillScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
 export const FBAOrderUncheckedUpdateManyWithoutSenderNestedInputSchema: z.ZodType<Prisma.FBAOrderUncheckedUpdateManyWithoutSenderNestedInput> = z.object({
   create: z.union([ z.lazy(() => FBAOrderCreateWithoutSenderInputSchema),z.lazy(() => FBAOrderCreateWithoutSenderInputSchema).array(),z.lazy(() => FBAOrderUncheckedCreateWithoutSenderInputSchema),z.lazy(() => FBAOrderUncheckedCreateWithoutSenderInputSchema).array() ]).optional(),
   connectOrCreate: z.union([ z.lazy(() => FBAOrderCreateOrConnectWithoutSenderInputSchema),z.lazy(() => FBAOrderCreateOrConnectWithoutSenderInputSchema).array() ]).optional(),
@@ -8775,6 +9516,20 @@ export const LoginLogUncheckedUpdateManyWithoutCustomerNestedInputSchema: z.ZodT
   update: z.union([ z.lazy(() => LoginLogUpdateWithWhereUniqueWithoutCustomerInputSchema),z.lazy(() => LoginLogUpdateWithWhereUniqueWithoutCustomerInputSchema).array() ]).optional(),
   updateMany: z.union([ z.lazy(() => LoginLogUpdateManyWithWhereWithoutCustomerInputSchema),z.lazy(() => LoginLogUpdateManyWithWhereWithoutCustomerInputSchema).array() ]).optional(),
   deleteMany: z.union([ z.lazy(() => LoginLogScalarWhereInputSchema),z.lazy(() => LoginLogScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
+export const FinanceBillUncheckedUpdateManyWithoutCustomerNestedInputSchema: z.ZodType<Prisma.FinanceBillUncheckedUpdateManyWithoutCustomerNestedInput> = z.object({
+  create: z.union([ z.lazy(() => FinanceBillCreateWithoutCustomerInputSchema),z.lazy(() => FinanceBillCreateWithoutCustomerInputSchema).array(),z.lazy(() => FinanceBillUncheckedCreateWithoutCustomerInputSchema),z.lazy(() => FinanceBillUncheckedCreateWithoutCustomerInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinanceBillCreateOrConnectWithoutCustomerInputSchema),z.lazy(() => FinanceBillCreateOrConnectWithoutCustomerInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => FinanceBillUpsertWithWhereUniqueWithoutCustomerInputSchema),z.lazy(() => FinanceBillUpsertWithWhereUniqueWithoutCustomerInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FinanceBillCreateManyCustomerInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => FinanceBillWhereUniqueInputSchema),z.lazy(() => FinanceBillWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => FinanceBillWhereUniqueInputSchema),z.lazy(() => FinanceBillWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => FinanceBillWhereUniqueInputSchema),z.lazy(() => FinanceBillWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => FinanceBillWhereUniqueInputSchema),z.lazy(() => FinanceBillWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => FinanceBillUpdateWithWhereUniqueWithoutCustomerInputSchema),z.lazy(() => FinanceBillUpdateWithWhereUniqueWithoutCustomerInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => FinanceBillUpdateManyWithWhereWithoutCustomerInputSchema),z.lazy(() => FinanceBillUpdateManyWithWhereWithoutCustomerInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => FinanceBillScalarWhereInputSchema),z.lazy(() => FinanceBillScalarWhereInputSchema).array() ]).optional(),
 }).strict();
 
 export const FBAOrderCreateattrsInputSchema: z.ZodType<Prisma.FBAOrderCreateattrsInput> = z.object({
@@ -8848,6 +9603,12 @@ export const AttachmentCreateNestedManyWithoutWaybillInputSchema: z.ZodType<Pris
   connect: z.union([ z.lazy(() => AttachmentWhereUniqueInputSchema),z.lazy(() => AttachmentWhereUniqueInputSchema).array() ]).optional(),
 }).strict();
 
+export const FinanceBillCreateNestedManyWithoutWaybillsInputSchema: z.ZodType<Prisma.FinanceBillCreateNestedManyWithoutWaybillsInput> = z.object({
+  create: z.union([ z.lazy(() => FinanceBillCreateWithoutWaybillsInputSchema),z.lazy(() => FinanceBillCreateWithoutWaybillsInputSchema).array(),z.lazy(() => FinanceBillUncheckedCreateWithoutWaybillsInputSchema),z.lazy(() => FinanceBillUncheckedCreateWithoutWaybillsInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinanceBillCreateOrConnectWithoutWaybillsInputSchema),z.lazy(() => FinanceBillCreateOrConnectWithoutWaybillsInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => FinanceBillWhereUniqueInputSchema),z.lazy(() => FinanceBillWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
 export const BoxUncheckedCreateNestedManyWithoutFbaOrderInputSchema: z.ZodType<Prisma.BoxUncheckedCreateNestedManyWithoutFbaOrderInput> = z.object({
   create: z.union([ z.lazy(() => BoxCreateWithoutFbaOrderInputSchema),z.lazy(() => BoxCreateWithoutFbaOrderInputSchema).array(),z.lazy(() => BoxUncheckedCreateWithoutFbaOrderInputSchema),z.lazy(() => BoxUncheckedCreateWithoutFbaOrderInputSchema).array() ]).optional(),
   connectOrCreate: z.union([ z.lazy(() => BoxCreateOrConnectWithoutFbaOrderInputSchema),z.lazy(() => BoxCreateOrConnectWithoutFbaOrderInputSchema).array() ]).optional(),
@@ -8867,6 +9628,12 @@ export const AttachmentUncheckedCreateNestedManyWithoutWaybillInputSchema: z.Zod
   connectOrCreate: z.union([ z.lazy(() => AttachmentCreateOrConnectWithoutWaybillInputSchema),z.lazy(() => AttachmentCreateOrConnectWithoutWaybillInputSchema).array() ]).optional(),
   createMany: z.lazy(() => AttachmentCreateManyWaybillInputEnvelopeSchema).optional(),
   connect: z.union([ z.lazy(() => AttachmentWhereUniqueInputSchema),z.lazy(() => AttachmentWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
+export const FinanceBillUncheckedCreateNestedManyWithoutWaybillsInputSchema: z.ZodType<Prisma.FinanceBillUncheckedCreateNestedManyWithoutWaybillsInput> = z.object({
+  create: z.union([ z.lazy(() => FinanceBillCreateWithoutWaybillsInputSchema),z.lazy(() => FinanceBillCreateWithoutWaybillsInputSchema).array(),z.lazy(() => FinanceBillUncheckedCreateWithoutWaybillsInputSchema),z.lazy(() => FinanceBillUncheckedCreateWithoutWaybillsInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinanceBillCreateOrConnectWithoutWaybillsInputSchema),z.lazy(() => FinanceBillCreateOrConnectWithoutWaybillsInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => FinanceBillWhereUniqueInputSchema),z.lazy(() => FinanceBillWhereUniqueInputSchema).array() ]).optional(),
 }).strict();
 
 export const EnumOrderStatusFieldUpdateOperationsInputSchema: z.ZodType<Prisma.EnumOrderStatusFieldUpdateOperationsInput> = z.object({
@@ -8995,6 +9762,19 @@ export const AttachmentUpdateManyWithoutWaybillNestedInputSchema: z.ZodType<Pris
   deleteMany: z.union([ z.lazy(() => AttachmentScalarWhereInputSchema),z.lazy(() => AttachmentScalarWhereInputSchema).array() ]).optional(),
 }).strict();
 
+export const FinanceBillUpdateManyWithoutWaybillsNestedInputSchema: z.ZodType<Prisma.FinanceBillUpdateManyWithoutWaybillsNestedInput> = z.object({
+  create: z.union([ z.lazy(() => FinanceBillCreateWithoutWaybillsInputSchema),z.lazy(() => FinanceBillCreateWithoutWaybillsInputSchema).array(),z.lazy(() => FinanceBillUncheckedCreateWithoutWaybillsInputSchema),z.lazy(() => FinanceBillUncheckedCreateWithoutWaybillsInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinanceBillCreateOrConnectWithoutWaybillsInputSchema),z.lazy(() => FinanceBillCreateOrConnectWithoutWaybillsInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => FinanceBillUpsertWithWhereUniqueWithoutWaybillsInputSchema),z.lazy(() => FinanceBillUpsertWithWhereUniqueWithoutWaybillsInputSchema).array() ]).optional(),
+  set: z.union([ z.lazy(() => FinanceBillWhereUniqueInputSchema),z.lazy(() => FinanceBillWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => FinanceBillWhereUniqueInputSchema),z.lazy(() => FinanceBillWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => FinanceBillWhereUniqueInputSchema),z.lazy(() => FinanceBillWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => FinanceBillWhereUniqueInputSchema),z.lazy(() => FinanceBillWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => FinanceBillUpdateWithWhereUniqueWithoutWaybillsInputSchema),z.lazy(() => FinanceBillUpdateWithWhereUniqueWithoutWaybillsInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => FinanceBillUpdateManyWithWhereWithoutWaybillsInputSchema),z.lazy(() => FinanceBillUpdateManyWithWhereWithoutWaybillsInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => FinanceBillScalarWhereInputSchema),z.lazy(() => FinanceBillScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
 export const BoxUncheckedUpdateManyWithoutFbaOrderNestedInputSchema: z.ZodType<Prisma.BoxUncheckedUpdateManyWithoutFbaOrderNestedInput> = z.object({
   create: z.union([ z.lazy(() => BoxCreateWithoutFbaOrderInputSchema),z.lazy(() => BoxCreateWithoutFbaOrderInputSchema).array(),z.lazy(() => BoxUncheckedCreateWithoutFbaOrderInputSchema),z.lazy(() => BoxUncheckedCreateWithoutFbaOrderInputSchema).array() ]).optional(),
   connectOrCreate: z.union([ z.lazy(() => BoxCreateOrConnectWithoutFbaOrderInputSchema),z.lazy(() => BoxCreateOrConnectWithoutFbaOrderInputSchema).array() ]).optional(),
@@ -9035,6 +9815,19 @@ export const AttachmentUncheckedUpdateManyWithoutWaybillNestedInputSchema: z.Zod
   update: z.union([ z.lazy(() => AttachmentUpdateWithWhereUniqueWithoutWaybillInputSchema),z.lazy(() => AttachmentUpdateWithWhereUniqueWithoutWaybillInputSchema).array() ]).optional(),
   updateMany: z.union([ z.lazy(() => AttachmentUpdateManyWithWhereWithoutWaybillInputSchema),z.lazy(() => AttachmentUpdateManyWithWhereWithoutWaybillInputSchema).array() ]).optional(),
   deleteMany: z.union([ z.lazy(() => AttachmentScalarWhereInputSchema),z.lazy(() => AttachmentScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
+export const FinanceBillUncheckedUpdateManyWithoutWaybillsNestedInputSchema: z.ZodType<Prisma.FinanceBillUncheckedUpdateManyWithoutWaybillsNestedInput> = z.object({
+  create: z.union([ z.lazy(() => FinanceBillCreateWithoutWaybillsInputSchema),z.lazy(() => FinanceBillCreateWithoutWaybillsInputSchema).array(),z.lazy(() => FinanceBillUncheckedCreateWithoutWaybillsInputSchema),z.lazy(() => FinanceBillUncheckedCreateWithoutWaybillsInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FinanceBillCreateOrConnectWithoutWaybillsInputSchema),z.lazy(() => FinanceBillCreateOrConnectWithoutWaybillsInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => FinanceBillUpsertWithWhereUniqueWithoutWaybillsInputSchema),z.lazy(() => FinanceBillUpsertWithWhereUniqueWithoutWaybillsInputSchema).array() ]).optional(),
+  set: z.union([ z.lazy(() => FinanceBillWhereUniqueInputSchema),z.lazy(() => FinanceBillWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => FinanceBillWhereUniqueInputSchema),z.lazy(() => FinanceBillWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => FinanceBillWhereUniqueInputSchema),z.lazy(() => FinanceBillWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => FinanceBillWhereUniqueInputSchema),z.lazy(() => FinanceBillWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => FinanceBillUpdateWithWhereUniqueWithoutWaybillsInputSchema),z.lazy(() => FinanceBillUpdateWithWhereUniqueWithoutWaybillsInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => FinanceBillUpdateManyWithWhereWithoutWaybillsInputSchema),z.lazy(() => FinanceBillUpdateManyWithWhereWithoutWaybillsInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => FinanceBillScalarWhereInputSchema),z.lazy(() => FinanceBillScalarWhereInputSchema).array() ]).optional(),
 }).strict();
 
 export const FBAOrderCreateNestedOneWithoutAttachmentsInputSchema: z.ZodType<Prisma.FBAOrderCreateNestedOneWithoutAttachmentsInput> = z.object({
@@ -9713,6 +10506,170 @@ export const CustomerUpdateOneRequiredWithoutLoginLogsNestedInputSchema: z.ZodTy
   update: z.union([ z.lazy(() => CustomerUpdateToOneWithWhereWithoutLoginLogsInputSchema),z.lazy(() => CustomerUpdateWithoutLoginLogsInputSchema),z.lazy(() => CustomerUncheckedUpdateWithoutLoginLogsInputSchema) ]).optional(),
 }).strict();
 
+export const CustomerCreateNestedOneWithoutBillsInputSchema: z.ZodType<Prisma.CustomerCreateNestedOneWithoutBillsInput> = z.object({
+  create: z.union([ z.lazy(() => CustomerCreateWithoutBillsInputSchema),z.lazy(() => CustomerUncheckedCreateWithoutBillsInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => CustomerCreateOrConnectWithoutBillsInputSchema).optional(),
+  connect: z.lazy(() => CustomerWhereUniqueInputSchema).optional()
+}).strict();
+
+export const FBAOrderCreateNestedManyWithoutBillsInputSchema: z.ZodType<Prisma.FBAOrderCreateNestedManyWithoutBillsInput> = z.object({
+  create: z.union([ z.lazy(() => FBAOrderCreateWithoutBillsInputSchema),z.lazy(() => FBAOrderCreateWithoutBillsInputSchema).array(),z.lazy(() => FBAOrderUncheckedCreateWithoutBillsInputSchema),z.lazy(() => FBAOrderUncheckedCreateWithoutBillsInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FBAOrderCreateOrConnectWithoutBillsInputSchema),z.lazy(() => FBAOrderCreateOrConnectWithoutBillsInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => FBAOrderWhereUniqueInputSchema),z.lazy(() => FBAOrderWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
+export const BillLogCreateNestedManyWithoutBillInputSchema: z.ZodType<Prisma.BillLogCreateNestedManyWithoutBillInput> = z.object({
+  create: z.union([ z.lazy(() => BillLogCreateWithoutBillInputSchema),z.lazy(() => BillLogCreateWithoutBillInputSchema).array(),z.lazy(() => BillLogUncheckedCreateWithoutBillInputSchema),z.lazy(() => BillLogUncheckedCreateWithoutBillInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => BillLogCreateOrConnectWithoutBillInputSchema),z.lazy(() => BillLogCreateOrConnectWithoutBillInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => BillLogCreateManyBillInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => BillLogWhereUniqueInputSchema),z.lazy(() => BillLogWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
+export const BillAttachmentCreateNestedManyWithoutBillInputSchema: z.ZodType<Prisma.BillAttachmentCreateNestedManyWithoutBillInput> = z.object({
+  create: z.union([ z.lazy(() => BillAttachmentCreateWithoutBillInputSchema),z.lazy(() => BillAttachmentCreateWithoutBillInputSchema).array(),z.lazy(() => BillAttachmentUncheckedCreateWithoutBillInputSchema),z.lazy(() => BillAttachmentUncheckedCreateWithoutBillInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => BillAttachmentCreateOrConnectWithoutBillInputSchema),z.lazy(() => BillAttachmentCreateOrConnectWithoutBillInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => BillAttachmentCreateManyBillInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => BillAttachmentWhereUniqueInputSchema),z.lazy(() => BillAttachmentWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
+export const FBAOrderUncheckedCreateNestedManyWithoutBillsInputSchema: z.ZodType<Prisma.FBAOrderUncheckedCreateNestedManyWithoutBillsInput> = z.object({
+  create: z.union([ z.lazy(() => FBAOrderCreateWithoutBillsInputSchema),z.lazy(() => FBAOrderCreateWithoutBillsInputSchema).array(),z.lazy(() => FBAOrderUncheckedCreateWithoutBillsInputSchema),z.lazy(() => FBAOrderUncheckedCreateWithoutBillsInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FBAOrderCreateOrConnectWithoutBillsInputSchema),z.lazy(() => FBAOrderCreateOrConnectWithoutBillsInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => FBAOrderWhereUniqueInputSchema),z.lazy(() => FBAOrderWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
+export const BillLogUncheckedCreateNestedManyWithoutBillInputSchema: z.ZodType<Prisma.BillLogUncheckedCreateNestedManyWithoutBillInput> = z.object({
+  create: z.union([ z.lazy(() => BillLogCreateWithoutBillInputSchema),z.lazy(() => BillLogCreateWithoutBillInputSchema).array(),z.lazy(() => BillLogUncheckedCreateWithoutBillInputSchema),z.lazy(() => BillLogUncheckedCreateWithoutBillInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => BillLogCreateOrConnectWithoutBillInputSchema),z.lazy(() => BillLogCreateOrConnectWithoutBillInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => BillLogCreateManyBillInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => BillLogWhereUniqueInputSchema),z.lazy(() => BillLogWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
+export const BillAttachmentUncheckedCreateNestedManyWithoutBillInputSchema: z.ZodType<Prisma.BillAttachmentUncheckedCreateNestedManyWithoutBillInput> = z.object({
+  create: z.union([ z.lazy(() => BillAttachmentCreateWithoutBillInputSchema),z.lazy(() => BillAttachmentCreateWithoutBillInputSchema).array(),z.lazy(() => BillAttachmentUncheckedCreateWithoutBillInputSchema),z.lazy(() => BillAttachmentUncheckedCreateWithoutBillInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => BillAttachmentCreateOrConnectWithoutBillInputSchema),z.lazy(() => BillAttachmentCreateOrConnectWithoutBillInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => BillAttachmentCreateManyBillInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => BillAttachmentWhereUniqueInputSchema),z.lazy(() => BillAttachmentWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
+export const CustomerUpdateOneRequiredWithoutBillsNestedInputSchema: z.ZodType<Prisma.CustomerUpdateOneRequiredWithoutBillsNestedInput> = z.object({
+  create: z.union([ z.lazy(() => CustomerCreateWithoutBillsInputSchema),z.lazy(() => CustomerUncheckedCreateWithoutBillsInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => CustomerCreateOrConnectWithoutBillsInputSchema).optional(),
+  upsert: z.lazy(() => CustomerUpsertWithoutBillsInputSchema).optional(),
+  connect: z.lazy(() => CustomerWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => CustomerUpdateToOneWithWhereWithoutBillsInputSchema),z.lazy(() => CustomerUpdateWithoutBillsInputSchema),z.lazy(() => CustomerUncheckedUpdateWithoutBillsInputSchema) ]).optional(),
+}).strict();
+
+export const FBAOrderUpdateManyWithoutBillsNestedInputSchema: z.ZodType<Prisma.FBAOrderUpdateManyWithoutBillsNestedInput> = z.object({
+  create: z.union([ z.lazy(() => FBAOrderCreateWithoutBillsInputSchema),z.lazy(() => FBAOrderCreateWithoutBillsInputSchema).array(),z.lazy(() => FBAOrderUncheckedCreateWithoutBillsInputSchema),z.lazy(() => FBAOrderUncheckedCreateWithoutBillsInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FBAOrderCreateOrConnectWithoutBillsInputSchema),z.lazy(() => FBAOrderCreateOrConnectWithoutBillsInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => FBAOrderUpsertWithWhereUniqueWithoutBillsInputSchema),z.lazy(() => FBAOrderUpsertWithWhereUniqueWithoutBillsInputSchema).array() ]).optional(),
+  set: z.union([ z.lazy(() => FBAOrderWhereUniqueInputSchema),z.lazy(() => FBAOrderWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => FBAOrderWhereUniqueInputSchema),z.lazy(() => FBAOrderWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => FBAOrderWhereUniqueInputSchema),z.lazy(() => FBAOrderWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => FBAOrderWhereUniqueInputSchema),z.lazy(() => FBAOrderWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => FBAOrderUpdateWithWhereUniqueWithoutBillsInputSchema),z.lazy(() => FBAOrderUpdateWithWhereUniqueWithoutBillsInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => FBAOrderUpdateManyWithWhereWithoutBillsInputSchema),z.lazy(() => FBAOrderUpdateManyWithWhereWithoutBillsInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => FBAOrderScalarWhereInputSchema),z.lazy(() => FBAOrderScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
+export const BillLogUpdateManyWithoutBillNestedInputSchema: z.ZodType<Prisma.BillLogUpdateManyWithoutBillNestedInput> = z.object({
+  create: z.union([ z.lazy(() => BillLogCreateWithoutBillInputSchema),z.lazy(() => BillLogCreateWithoutBillInputSchema).array(),z.lazy(() => BillLogUncheckedCreateWithoutBillInputSchema),z.lazy(() => BillLogUncheckedCreateWithoutBillInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => BillLogCreateOrConnectWithoutBillInputSchema),z.lazy(() => BillLogCreateOrConnectWithoutBillInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => BillLogUpsertWithWhereUniqueWithoutBillInputSchema),z.lazy(() => BillLogUpsertWithWhereUniqueWithoutBillInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => BillLogCreateManyBillInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => BillLogWhereUniqueInputSchema),z.lazy(() => BillLogWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => BillLogWhereUniqueInputSchema),z.lazy(() => BillLogWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => BillLogWhereUniqueInputSchema),z.lazy(() => BillLogWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => BillLogWhereUniqueInputSchema),z.lazy(() => BillLogWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => BillLogUpdateWithWhereUniqueWithoutBillInputSchema),z.lazy(() => BillLogUpdateWithWhereUniqueWithoutBillInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => BillLogUpdateManyWithWhereWithoutBillInputSchema),z.lazy(() => BillLogUpdateManyWithWhereWithoutBillInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => BillLogScalarWhereInputSchema),z.lazy(() => BillLogScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
+export const BillAttachmentUpdateManyWithoutBillNestedInputSchema: z.ZodType<Prisma.BillAttachmentUpdateManyWithoutBillNestedInput> = z.object({
+  create: z.union([ z.lazy(() => BillAttachmentCreateWithoutBillInputSchema),z.lazy(() => BillAttachmentCreateWithoutBillInputSchema).array(),z.lazy(() => BillAttachmentUncheckedCreateWithoutBillInputSchema),z.lazy(() => BillAttachmentUncheckedCreateWithoutBillInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => BillAttachmentCreateOrConnectWithoutBillInputSchema),z.lazy(() => BillAttachmentCreateOrConnectWithoutBillInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => BillAttachmentUpsertWithWhereUniqueWithoutBillInputSchema),z.lazy(() => BillAttachmentUpsertWithWhereUniqueWithoutBillInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => BillAttachmentCreateManyBillInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => BillAttachmentWhereUniqueInputSchema),z.lazy(() => BillAttachmentWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => BillAttachmentWhereUniqueInputSchema),z.lazy(() => BillAttachmentWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => BillAttachmentWhereUniqueInputSchema),z.lazy(() => BillAttachmentWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => BillAttachmentWhereUniqueInputSchema),z.lazy(() => BillAttachmentWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => BillAttachmentUpdateWithWhereUniqueWithoutBillInputSchema),z.lazy(() => BillAttachmentUpdateWithWhereUniqueWithoutBillInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => BillAttachmentUpdateManyWithWhereWithoutBillInputSchema),z.lazy(() => BillAttachmentUpdateManyWithWhereWithoutBillInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => BillAttachmentScalarWhereInputSchema),z.lazy(() => BillAttachmentScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
+export const FBAOrderUncheckedUpdateManyWithoutBillsNestedInputSchema: z.ZodType<Prisma.FBAOrderUncheckedUpdateManyWithoutBillsNestedInput> = z.object({
+  create: z.union([ z.lazy(() => FBAOrderCreateWithoutBillsInputSchema),z.lazy(() => FBAOrderCreateWithoutBillsInputSchema).array(),z.lazy(() => FBAOrderUncheckedCreateWithoutBillsInputSchema),z.lazy(() => FBAOrderUncheckedCreateWithoutBillsInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FBAOrderCreateOrConnectWithoutBillsInputSchema),z.lazy(() => FBAOrderCreateOrConnectWithoutBillsInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => FBAOrderUpsertWithWhereUniqueWithoutBillsInputSchema),z.lazy(() => FBAOrderUpsertWithWhereUniqueWithoutBillsInputSchema).array() ]).optional(),
+  set: z.union([ z.lazy(() => FBAOrderWhereUniqueInputSchema),z.lazy(() => FBAOrderWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => FBAOrderWhereUniqueInputSchema),z.lazy(() => FBAOrderWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => FBAOrderWhereUniqueInputSchema),z.lazy(() => FBAOrderWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => FBAOrderWhereUniqueInputSchema),z.lazy(() => FBAOrderWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => FBAOrderUpdateWithWhereUniqueWithoutBillsInputSchema),z.lazy(() => FBAOrderUpdateWithWhereUniqueWithoutBillsInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => FBAOrderUpdateManyWithWhereWithoutBillsInputSchema),z.lazy(() => FBAOrderUpdateManyWithWhereWithoutBillsInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => FBAOrderScalarWhereInputSchema),z.lazy(() => FBAOrderScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
+export const BillLogUncheckedUpdateManyWithoutBillNestedInputSchema: z.ZodType<Prisma.BillLogUncheckedUpdateManyWithoutBillNestedInput> = z.object({
+  create: z.union([ z.lazy(() => BillLogCreateWithoutBillInputSchema),z.lazy(() => BillLogCreateWithoutBillInputSchema).array(),z.lazy(() => BillLogUncheckedCreateWithoutBillInputSchema),z.lazy(() => BillLogUncheckedCreateWithoutBillInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => BillLogCreateOrConnectWithoutBillInputSchema),z.lazy(() => BillLogCreateOrConnectWithoutBillInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => BillLogUpsertWithWhereUniqueWithoutBillInputSchema),z.lazy(() => BillLogUpsertWithWhereUniqueWithoutBillInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => BillLogCreateManyBillInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => BillLogWhereUniqueInputSchema),z.lazy(() => BillLogWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => BillLogWhereUniqueInputSchema),z.lazy(() => BillLogWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => BillLogWhereUniqueInputSchema),z.lazy(() => BillLogWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => BillLogWhereUniqueInputSchema),z.lazy(() => BillLogWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => BillLogUpdateWithWhereUniqueWithoutBillInputSchema),z.lazy(() => BillLogUpdateWithWhereUniqueWithoutBillInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => BillLogUpdateManyWithWhereWithoutBillInputSchema),z.lazy(() => BillLogUpdateManyWithWhereWithoutBillInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => BillLogScalarWhereInputSchema),z.lazy(() => BillLogScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
+export const BillAttachmentUncheckedUpdateManyWithoutBillNestedInputSchema: z.ZodType<Prisma.BillAttachmentUncheckedUpdateManyWithoutBillNestedInput> = z.object({
+  create: z.union([ z.lazy(() => BillAttachmentCreateWithoutBillInputSchema),z.lazy(() => BillAttachmentCreateWithoutBillInputSchema).array(),z.lazy(() => BillAttachmentUncheckedCreateWithoutBillInputSchema),z.lazy(() => BillAttachmentUncheckedCreateWithoutBillInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => BillAttachmentCreateOrConnectWithoutBillInputSchema),z.lazy(() => BillAttachmentCreateOrConnectWithoutBillInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => BillAttachmentUpsertWithWhereUniqueWithoutBillInputSchema),z.lazy(() => BillAttachmentUpsertWithWhereUniqueWithoutBillInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => BillAttachmentCreateManyBillInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => BillAttachmentWhereUniqueInputSchema),z.lazy(() => BillAttachmentWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => BillAttachmentWhereUniqueInputSchema),z.lazy(() => BillAttachmentWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => BillAttachmentWhereUniqueInputSchema),z.lazy(() => BillAttachmentWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => BillAttachmentWhereUniqueInputSchema),z.lazy(() => BillAttachmentWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => BillAttachmentUpdateWithWhereUniqueWithoutBillInputSchema),z.lazy(() => BillAttachmentUpdateWithWhereUniqueWithoutBillInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => BillAttachmentUpdateManyWithWhereWithoutBillInputSchema),z.lazy(() => BillAttachmentUpdateManyWithWhereWithoutBillInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => BillAttachmentScalarWhereInputSchema),z.lazy(() => BillAttachmentScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
+export const FinanceBillCreateNestedOneWithoutLogsInputSchema: z.ZodType<Prisma.FinanceBillCreateNestedOneWithoutLogsInput> = z.object({
+  create: z.union([ z.lazy(() => FinanceBillCreateWithoutLogsInputSchema),z.lazy(() => FinanceBillUncheckedCreateWithoutLogsInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => FinanceBillCreateOrConnectWithoutLogsInputSchema).optional(),
+  connect: z.lazy(() => FinanceBillWhereUniqueInputSchema).optional()
+}).strict();
+
+export const FinanceBillUpdateOneRequiredWithoutLogsNestedInputSchema: z.ZodType<Prisma.FinanceBillUpdateOneRequiredWithoutLogsNestedInput> = z.object({
+  create: z.union([ z.lazy(() => FinanceBillCreateWithoutLogsInputSchema),z.lazy(() => FinanceBillUncheckedCreateWithoutLogsInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => FinanceBillCreateOrConnectWithoutLogsInputSchema).optional(),
+  upsert: z.lazy(() => FinanceBillUpsertWithoutLogsInputSchema).optional(),
+  connect: z.lazy(() => FinanceBillWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => FinanceBillUpdateToOneWithWhereWithoutLogsInputSchema),z.lazy(() => FinanceBillUpdateWithoutLogsInputSchema),z.lazy(() => FinanceBillUncheckedUpdateWithoutLogsInputSchema) ]).optional(),
+}).strict();
+
+export const FinanceBillCreateNestedOneWithoutAttachmentsInputSchema: z.ZodType<Prisma.FinanceBillCreateNestedOneWithoutAttachmentsInput> = z.object({
+  create: z.union([ z.lazy(() => FinanceBillCreateWithoutAttachmentsInputSchema),z.lazy(() => FinanceBillUncheckedCreateWithoutAttachmentsInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => FinanceBillCreateOrConnectWithoutAttachmentsInputSchema).optional(),
+  connect: z.lazy(() => FinanceBillWhereUniqueInputSchema).optional()
+}).strict();
+
+export const FinanceBillUpdateOneRequiredWithoutAttachmentsNestedInputSchema: z.ZodType<Prisma.FinanceBillUpdateOneRequiredWithoutAttachmentsNestedInput> = z.object({
+  create: z.union([ z.lazy(() => FinanceBillCreateWithoutAttachmentsInputSchema),z.lazy(() => FinanceBillUncheckedCreateWithoutAttachmentsInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => FinanceBillCreateOrConnectWithoutAttachmentsInputSchema).optional(),
+  upsert: z.lazy(() => FinanceBillUpsertWithoutAttachmentsInputSchema).optional(),
+  connect: z.lazy(() => FinanceBillWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => FinanceBillUpdateToOneWithWhereWithoutAttachmentsInputSchema),z.lazy(() => FinanceBillUpdateWithoutAttachmentsInputSchema),z.lazy(() => FinanceBillUncheckedUpdateWithoutAttachmentsInputSchema) ]).optional(),
+}).strict();
+
 export const NestedStringFilterSchema: z.ZodType<Prisma.NestedStringFilter> = z.object({
   equals: z.string().optional(),
   in: z.string().array().optional(),
@@ -10143,7 +11100,8 @@ export const FBAOrderCreateWithoutTenantInputSchema: z.ZodType<Prisma.FBAOrderCr
   waybillRule: z.lazy(() => WaybillRuleCreateNestedOneWithoutFbaOrdersInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogCreateNestedManyWithoutShipmentInputSchema).optional(),
   carrier: z.lazy(() => CarrierCreateNestedOneWithoutFbaOrdersInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentCreateNestedManyWithoutWaybillInputSchema).optional()
+  attachments: z.lazy(() => AttachmentCreateNestedManyWithoutWaybillInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillCreateNestedManyWithoutWaybillsInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedCreateWithoutTenantInputSchema: z.ZodType<Prisma.FBAOrderUncheckedCreateWithoutTenantInput> = z.object({
@@ -10211,7 +11169,8 @@ export const FBAOrderUncheckedCreateWithoutTenantInputSchema: z.ZodType<Prisma.F
   carrierId: z.string().optional().nullable(),
   boxes: z.lazy(() => BoxUncheckedCreateNestedManyWithoutFbaOrderInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUncheckedCreateNestedManyWithoutShipmentInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUncheckedCreateNestedManyWithoutWaybillInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUncheckedCreateNestedManyWithoutWaybillInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedCreateNestedManyWithoutWaybillsInputSchema).optional()
 }).strict();
 
 export const FBAOrderCreateOrConnectWithoutTenantInputSchema: z.ZodType<Prisma.FBAOrderCreateOrConnectWithoutTenantInput> = z.object({
@@ -10315,7 +11274,8 @@ export const CustomerCreateWithoutTenantInputSchema: z.ZodType<Prisma.CustomerCr
   fbaOrders: z.lazy(() => FBAOrderCreateNestedManyWithoutSenderInputSchema).optional(),
   orders: z.lazy(() => FBAOrderCreateNestedManyWithoutCustomerInputSchema).optional(),
   positions: z.lazy(() => PositionCreateNestedManyWithoutCustomerInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogCreateNestedManyWithoutCustomerInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogCreateNestedManyWithoutCustomerInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillCreateNestedManyWithoutCustomerInputSchema).optional()
 }).strict();
 
 export const CustomerUncheckedCreateWithoutTenantInputSchema: z.ZodType<Prisma.CustomerUncheckedCreateWithoutTenantInput> = z.object({
@@ -10337,7 +11297,8 @@ export const CustomerUncheckedCreateWithoutTenantInputSchema: z.ZodType<Prisma.C
   fbaOrders: z.lazy(() => FBAOrderUncheckedCreateNestedManyWithoutSenderInputSchema).optional(),
   orders: z.lazy(() => FBAOrderUncheckedCreateNestedManyWithoutCustomerInputSchema).optional(),
   positions: z.lazy(() => PositionUncheckedCreateNestedManyWithoutCustomerInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogUncheckedCreateNestedManyWithoutCustomerInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogUncheckedCreateNestedManyWithoutCustomerInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedCreateNestedManyWithoutCustomerInputSchema).optional()
 }).strict();
 
 export const CustomerCreateOrConnectWithoutTenantInputSchema: z.ZodType<Prisma.CustomerCreateOrConnectWithoutTenantInput> = z.object({
@@ -10678,7 +11639,8 @@ export const FBAOrderCreateWithoutUserInputSchema: z.ZodType<Prisma.FBAOrderCrea
   waybillRule: z.lazy(() => WaybillRuleCreateNestedOneWithoutFbaOrdersInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogCreateNestedManyWithoutShipmentInputSchema).optional(),
   carrier: z.lazy(() => CarrierCreateNestedOneWithoutFbaOrdersInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentCreateNestedManyWithoutWaybillInputSchema).optional()
+  attachments: z.lazy(() => AttachmentCreateNestedManyWithoutWaybillInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillCreateNestedManyWithoutWaybillsInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedCreateWithoutUserInputSchema: z.ZodType<Prisma.FBAOrderUncheckedCreateWithoutUserInput> = z.object({
@@ -10746,7 +11708,8 @@ export const FBAOrderUncheckedCreateWithoutUserInputSchema: z.ZodType<Prisma.FBA
   carrierId: z.string().optional().nullable(),
   boxes: z.lazy(() => BoxUncheckedCreateNestedManyWithoutFbaOrderInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUncheckedCreateNestedManyWithoutShipmentInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUncheckedCreateNestedManyWithoutWaybillInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUncheckedCreateNestedManyWithoutWaybillInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedCreateNestedManyWithoutWaybillsInputSchema).optional()
 }).strict();
 
 export const FBAOrderCreateOrConnectWithoutUserInputSchema: z.ZodType<Prisma.FBAOrderCreateOrConnectWithoutUserInput> = z.object({
@@ -10850,7 +11813,8 @@ export const CustomerCreateWithoutFinanceContactInputSchema: z.ZodType<Prisma.Cu
   fbaOrders: z.lazy(() => FBAOrderCreateNestedManyWithoutSenderInputSchema).optional(),
   orders: z.lazy(() => FBAOrderCreateNestedManyWithoutCustomerInputSchema).optional(),
   positions: z.lazy(() => PositionCreateNestedManyWithoutCustomerInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogCreateNestedManyWithoutCustomerInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogCreateNestedManyWithoutCustomerInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillCreateNestedManyWithoutCustomerInputSchema).optional()
 }).strict();
 
 export const CustomerUncheckedCreateWithoutFinanceContactInputSchema: z.ZodType<Prisma.CustomerUncheckedCreateWithoutFinanceContactInput> = z.object({
@@ -10872,7 +11836,8 @@ export const CustomerUncheckedCreateWithoutFinanceContactInputSchema: z.ZodType<
   fbaOrders: z.lazy(() => FBAOrderUncheckedCreateNestedManyWithoutSenderInputSchema).optional(),
   orders: z.lazy(() => FBAOrderUncheckedCreateNestedManyWithoutCustomerInputSchema).optional(),
   positions: z.lazy(() => PositionUncheckedCreateNestedManyWithoutCustomerInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogUncheckedCreateNestedManyWithoutCustomerInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogUncheckedCreateNestedManyWithoutCustomerInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedCreateNestedManyWithoutCustomerInputSchema).optional()
 }).strict();
 
 export const CustomerCreateOrConnectWithoutFinanceContactInputSchema: z.ZodType<Prisma.CustomerCreateOrConnectWithoutFinanceContactInput> = z.object({
@@ -11142,7 +12107,8 @@ export const FBAOrderCreateWithoutBoxesInputSchema: z.ZodType<Prisma.FBAOrderCre
   waybillRule: z.lazy(() => WaybillRuleCreateNestedOneWithoutFbaOrdersInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogCreateNestedManyWithoutShipmentInputSchema).optional(),
   carrier: z.lazy(() => CarrierCreateNestedOneWithoutFbaOrdersInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentCreateNestedManyWithoutWaybillInputSchema).optional()
+  attachments: z.lazy(() => AttachmentCreateNestedManyWithoutWaybillInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillCreateNestedManyWithoutWaybillsInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedCreateWithoutBoxesInputSchema: z.ZodType<Prisma.FBAOrderUncheckedCreateWithoutBoxesInput> = z.object({
@@ -11210,7 +12176,8 @@ export const FBAOrderUncheckedCreateWithoutBoxesInputSchema: z.ZodType<Prisma.FB
   errors: z.union([ z.lazy(() => FBAOrderCreateerrorsInputSchema),z.string().array() ]).optional(),
   carrierId: z.string().optional().nullable(),
   logs: z.lazy(() => ShipmentLogUncheckedCreateNestedManyWithoutShipmentInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUncheckedCreateNestedManyWithoutWaybillInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUncheckedCreateNestedManyWithoutWaybillInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedCreateNestedManyWithoutWaybillsInputSchema).optional()
 }).strict();
 
 export const FBAOrderCreateOrConnectWithoutBoxesInputSchema: z.ZodType<Prisma.FBAOrderCreateOrConnectWithoutBoxesInput> = z.object({
@@ -11294,7 +12261,8 @@ export const FBAOrderUpdateWithoutBoxesInputSchema: z.ZodType<Prisma.FBAOrderUpd
   waybillRule: z.lazy(() => WaybillRuleUpdateOneWithoutFbaOrdersNestedInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUpdateManyWithoutShipmentNestedInputSchema).optional(),
   carrier: z.lazy(() => CarrierUpdateOneWithoutFbaOrdersNestedInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUpdateManyWithoutWaybillNestedInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUpdateManyWithoutWaybillNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUpdateManyWithoutWaybillsNestedInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedUpdateWithoutBoxesInputSchema: z.ZodType<Prisma.FBAOrderUncheckedUpdateWithoutBoxesInput> = z.object({
@@ -11362,7 +12330,8 @@ export const FBAOrderUncheckedUpdateWithoutBoxesInputSchema: z.ZodType<Prisma.FB
   errors: z.union([ z.lazy(() => FBAOrderUpdateerrorsInputSchema),z.string().array() ]).optional(),
   carrierId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   logs: z.lazy(() => ShipmentLogUncheckedUpdateManyWithoutShipmentNestedInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUncheckedUpdateManyWithoutWaybillNestedInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUncheckedUpdateManyWithoutWaybillNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedUpdateManyWithoutWaybillsNestedInputSchema).optional()
 }).strict();
 
 export const FBAOrderCreateWithoutLogsInputSchema: z.ZodType<Prisma.FBAOrderCreateWithoutLogsInput> = z.object({
@@ -11430,7 +12399,8 @@ export const FBAOrderCreateWithoutLogsInputSchema: z.ZodType<Prisma.FBAOrderCrea
   boxes: z.lazy(() => BoxCreateNestedManyWithoutFbaOrderInputSchema).optional(),
   waybillRule: z.lazy(() => WaybillRuleCreateNestedOneWithoutFbaOrdersInputSchema).optional(),
   carrier: z.lazy(() => CarrierCreateNestedOneWithoutFbaOrdersInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentCreateNestedManyWithoutWaybillInputSchema).optional()
+  attachments: z.lazy(() => AttachmentCreateNestedManyWithoutWaybillInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillCreateNestedManyWithoutWaybillsInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedCreateWithoutLogsInputSchema: z.ZodType<Prisma.FBAOrderUncheckedCreateWithoutLogsInput> = z.object({
@@ -11498,7 +12468,8 @@ export const FBAOrderUncheckedCreateWithoutLogsInputSchema: z.ZodType<Prisma.FBA
   errors: z.union([ z.lazy(() => FBAOrderCreateerrorsInputSchema),z.string().array() ]).optional(),
   carrierId: z.string().optional().nullable(),
   boxes: z.lazy(() => BoxUncheckedCreateNestedManyWithoutFbaOrderInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUncheckedCreateNestedManyWithoutWaybillInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUncheckedCreateNestedManyWithoutWaybillInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedCreateNestedManyWithoutWaybillsInputSchema).optional()
 }).strict();
 
 export const FBAOrderCreateOrConnectWithoutLogsInputSchema: z.ZodType<Prisma.FBAOrderCreateOrConnectWithoutLogsInput> = z.object({
@@ -11582,7 +12553,8 @@ export const FBAOrderUpdateWithoutLogsInputSchema: z.ZodType<Prisma.FBAOrderUpda
   boxes: z.lazy(() => BoxUpdateManyWithoutFbaOrderNestedInputSchema).optional(),
   waybillRule: z.lazy(() => WaybillRuleUpdateOneWithoutFbaOrdersNestedInputSchema).optional(),
   carrier: z.lazy(() => CarrierUpdateOneWithoutFbaOrdersNestedInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUpdateManyWithoutWaybillNestedInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUpdateManyWithoutWaybillNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUpdateManyWithoutWaybillsNestedInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedUpdateWithoutLogsInputSchema: z.ZodType<Prisma.FBAOrderUncheckedUpdateWithoutLogsInput> = z.object({
@@ -11650,7 +12622,8 @@ export const FBAOrderUncheckedUpdateWithoutLogsInputSchema: z.ZodType<Prisma.FBA
   errors: z.union([ z.lazy(() => FBAOrderUpdateerrorsInputSchema),z.string().array() ]).optional(),
   carrierId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   boxes: z.lazy(() => BoxUncheckedUpdateManyWithoutFbaOrderNestedInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUncheckedUpdateManyWithoutWaybillNestedInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUncheckedUpdateManyWithoutWaybillNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedUpdateManyWithoutWaybillsNestedInputSchema).optional()
 }).strict();
 
 export const UserCreateWithoutFinanceCustomersInputSchema: z.ZodType<Prisma.UserCreateWithoutFinanceCustomersInput> = z.object({
@@ -11776,7 +12749,8 @@ export const FBAOrderCreateWithoutSenderInputSchema: z.ZodType<Prisma.FBAOrderCr
   waybillRule: z.lazy(() => WaybillRuleCreateNestedOneWithoutFbaOrdersInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogCreateNestedManyWithoutShipmentInputSchema).optional(),
   carrier: z.lazy(() => CarrierCreateNestedOneWithoutFbaOrdersInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentCreateNestedManyWithoutWaybillInputSchema).optional()
+  attachments: z.lazy(() => AttachmentCreateNestedManyWithoutWaybillInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillCreateNestedManyWithoutWaybillsInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedCreateWithoutSenderInputSchema: z.ZodType<Prisma.FBAOrderUncheckedCreateWithoutSenderInput> = z.object({
@@ -11844,7 +12818,8 @@ export const FBAOrderUncheckedCreateWithoutSenderInputSchema: z.ZodType<Prisma.F
   carrierId: z.string().optional().nullable(),
   boxes: z.lazy(() => BoxUncheckedCreateNestedManyWithoutFbaOrderInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUncheckedCreateNestedManyWithoutShipmentInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUncheckedCreateNestedManyWithoutWaybillInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUncheckedCreateNestedManyWithoutWaybillInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedCreateNestedManyWithoutWaybillsInputSchema).optional()
 }).strict();
 
 export const FBAOrderCreateOrConnectWithoutSenderInputSchema: z.ZodType<Prisma.FBAOrderCreateOrConnectWithoutSenderInput> = z.object({
@@ -11922,7 +12897,8 @@ export const FBAOrderCreateWithoutCustomerInputSchema: z.ZodType<Prisma.FBAOrder
   waybillRule: z.lazy(() => WaybillRuleCreateNestedOneWithoutFbaOrdersInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogCreateNestedManyWithoutShipmentInputSchema).optional(),
   carrier: z.lazy(() => CarrierCreateNestedOneWithoutFbaOrdersInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentCreateNestedManyWithoutWaybillInputSchema).optional()
+  attachments: z.lazy(() => AttachmentCreateNestedManyWithoutWaybillInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillCreateNestedManyWithoutWaybillsInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedCreateWithoutCustomerInputSchema: z.ZodType<Prisma.FBAOrderUncheckedCreateWithoutCustomerInput> = z.object({
@@ -11990,7 +12966,8 @@ export const FBAOrderUncheckedCreateWithoutCustomerInputSchema: z.ZodType<Prisma
   carrierId: z.string().optional().nullable(),
   boxes: z.lazy(() => BoxUncheckedCreateNestedManyWithoutFbaOrderInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUncheckedCreateNestedManyWithoutShipmentInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUncheckedCreateNestedManyWithoutWaybillInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUncheckedCreateNestedManyWithoutWaybillInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedCreateNestedManyWithoutWaybillsInputSchema).optional()
 }).strict();
 
 export const FBAOrderCreateOrConnectWithoutCustomerInputSchema: z.ZodType<Prisma.FBAOrderCreateOrConnectWithoutCustomerInput> = z.object({
@@ -12050,6 +13027,40 @@ export const LoginLogCreateOrConnectWithoutCustomerInputSchema: z.ZodType<Prisma
 
 export const LoginLogCreateManyCustomerInputEnvelopeSchema: z.ZodType<Prisma.LoginLogCreateManyCustomerInputEnvelope> = z.object({
   data: z.union([ z.lazy(() => LoginLogCreateManyCustomerInputSchema),z.lazy(() => LoginLogCreateManyCustomerInputSchema).array() ]),
+  skipDuplicates: z.boolean().optional()
+}).strict();
+
+export const FinanceBillCreateWithoutCustomerInputSchema: z.ZodType<Prisma.FinanceBillCreateWithoutCustomerInput> = z.object({
+  id: z.string().uuid().optional(),
+  billNo: z.string(),
+  totalAmount: z.number(),
+  status: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  waybills: z.lazy(() => FBAOrderCreateNestedManyWithoutBillsInputSchema).optional(),
+  logs: z.lazy(() => BillLogCreateNestedManyWithoutBillInputSchema).optional(),
+  attachments: z.lazy(() => BillAttachmentCreateNestedManyWithoutBillInputSchema).optional()
+}).strict();
+
+export const FinanceBillUncheckedCreateWithoutCustomerInputSchema: z.ZodType<Prisma.FinanceBillUncheckedCreateWithoutCustomerInput> = z.object({
+  id: z.string().uuid().optional(),
+  billNo: z.string(),
+  totalAmount: z.number(),
+  status: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  waybills: z.lazy(() => FBAOrderUncheckedCreateNestedManyWithoutBillsInputSchema).optional(),
+  logs: z.lazy(() => BillLogUncheckedCreateNestedManyWithoutBillInputSchema).optional(),
+  attachments: z.lazy(() => BillAttachmentUncheckedCreateNestedManyWithoutBillInputSchema).optional()
+}).strict();
+
+export const FinanceBillCreateOrConnectWithoutCustomerInputSchema: z.ZodType<Prisma.FinanceBillCreateOrConnectWithoutCustomerInput> = z.object({
+  where: z.lazy(() => FinanceBillWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => FinanceBillCreateWithoutCustomerInputSchema),z.lazy(() => FinanceBillUncheckedCreateWithoutCustomerInputSchema) ]),
+}).strict();
+
+export const FinanceBillCreateManyCustomerInputEnvelopeSchema: z.ZodType<Prisma.FinanceBillCreateManyCustomerInputEnvelope> = z.object({
+  data: z.union([ z.lazy(() => FinanceBillCreateManyCustomerInputSchema),z.lazy(() => FinanceBillCreateManyCustomerInputSchema).array() ]),
   skipDuplicates: z.boolean().optional()
 }).strict();
 
@@ -12207,6 +13218,35 @@ export const LoginLogScalarWhereInputSchema: z.ZodType<Prisma.LoginLogScalarWher
   device: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   userAgent: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   loginAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+}).strict();
+
+export const FinanceBillUpsertWithWhereUniqueWithoutCustomerInputSchema: z.ZodType<Prisma.FinanceBillUpsertWithWhereUniqueWithoutCustomerInput> = z.object({
+  where: z.lazy(() => FinanceBillWhereUniqueInputSchema),
+  update: z.union([ z.lazy(() => FinanceBillUpdateWithoutCustomerInputSchema),z.lazy(() => FinanceBillUncheckedUpdateWithoutCustomerInputSchema) ]),
+  create: z.union([ z.lazy(() => FinanceBillCreateWithoutCustomerInputSchema),z.lazy(() => FinanceBillUncheckedCreateWithoutCustomerInputSchema) ]),
+}).strict();
+
+export const FinanceBillUpdateWithWhereUniqueWithoutCustomerInputSchema: z.ZodType<Prisma.FinanceBillUpdateWithWhereUniqueWithoutCustomerInput> = z.object({
+  where: z.lazy(() => FinanceBillWhereUniqueInputSchema),
+  data: z.union([ z.lazy(() => FinanceBillUpdateWithoutCustomerInputSchema),z.lazy(() => FinanceBillUncheckedUpdateWithoutCustomerInputSchema) ]),
+}).strict();
+
+export const FinanceBillUpdateManyWithWhereWithoutCustomerInputSchema: z.ZodType<Prisma.FinanceBillUpdateManyWithWhereWithoutCustomerInput> = z.object({
+  where: z.lazy(() => FinanceBillScalarWhereInputSchema),
+  data: z.union([ z.lazy(() => FinanceBillUpdateManyMutationInputSchema),z.lazy(() => FinanceBillUncheckedUpdateManyWithoutCustomerInputSchema) ]),
+}).strict();
+
+export const FinanceBillScalarWhereInputSchema: z.ZodType<Prisma.FinanceBillScalarWhereInput> = z.object({
+  AND: z.union([ z.lazy(() => FinanceBillScalarWhereInputSchema),z.lazy(() => FinanceBillScalarWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FinanceBillScalarWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FinanceBillScalarWhereInputSchema),z.lazy(() => FinanceBillScalarWhereInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  billNo: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  customerId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  totalAmount: z.union([ z.lazy(() => FloatFilterSchema),z.number() ]).optional(),
+  status: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
 }).strict();
 
 export const ChannelCreateWithoutFbaOrdersInputSchema: z.ZodType<Prisma.ChannelCreateWithoutFbaOrdersInput> = z.object({
@@ -12438,7 +13478,8 @@ export const CustomerCreateWithoutOrdersInputSchema: z.ZodType<Prisma.CustomerCr
   tenant: z.lazy(() => TenantCreateNestedOneWithoutCustomersInputSchema),
   fbaOrders: z.lazy(() => FBAOrderCreateNestedManyWithoutSenderInputSchema).optional(),
   positions: z.lazy(() => PositionCreateNestedManyWithoutCustomerInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogCreateNestedManyWithoutCustomerInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogCreateNestedManyWithoutCustomerInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillCreateNestedManyWithoutCustomerInputSchema).optional()
 }).strict();
 
 export const CustomerUncheckedCreateWithoutOrdersInputSchema: z.ZodType<Prisma.CustomerUncheckedCreateWithoutOrdersInput> = z.object({
@@ -12460,7 +13501,8 @@ export const CustomerUncheckedCreateWithoutOrdersInputSchema: z.ZodType<Prisma.C
   updatedAt: z.coerce.date().optional(),
   fbaOrders: z.lazy(() => FBAOrderUncheckedCreateNestedManyWithoutSenderInputSchema).optional(),
   positions: z.lazy(() => PositionUncheckedCreateNestedManyWithoutCustomerInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogUncheckedCreateNestedManyWithoutCustomerInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogUncheckedCreateNestedManyWithoutCustomerInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedCreateNestedManyWithoutCustomerInputSchema).optional()
 }).strict();
 
 export const CustomerCreateOrConnectWithoutOrdersInputSchema: z.ZodType<Prisma.CustomerCreateOrConnectWithoutOrdersInput> = z.object({
@@ -12520,7 +13562,8 @@ export const CustomerCreateWithoutFbaOrdersInputSchema: z.ZodType<Prisma.Custome
   tenant: z.lazy(() => TenantCreateNestedOneWithoutCustomersInputSchema),
   orders: z.lazy(() => FBAOrderCreateNestedManyWithoutCustomerInputSchema).optional(),
   positions: z.lazy(() => PositionCreateNestedManyWithoutCustomerInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogCreateNestedManyWithoutCustomerInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogCreateNestedManyWithoutCustomerInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillCreateNestedManyWithoutCustomerInputSchema).optional()
 }).strict();
 
 export const CustomerUncheckedCreateWithoutFbaOrdersInputSchema: z.ZodType<Prisma.CustomerUncheckedCreateWithoutFbaOrdersInput> = z.object({
@@ -12542,7 +13585,8 @@ export const CustomerUncheckedCreateWithoutFbaOrdersInputSchema: z.ZodType<Prism
   updatedAt: z.coerce.date().optional(),
   orders: z.lazy(() => FBAOrderUncheckedCreateNestedManyWithoutCustomerInputSchema).optional(),
   positions: z.lazy(() => PositionUncheckedCreateNestedManyWithoutCustomerInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogUncheckedCreateNestedManyWithoutCustomerInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogUncheckedCreateNestedManyWithoutCustomerInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedCreateNestedManyWithoutCustomerInputSchema).optional()
 }).strict();
 
 export const CustomerCreateOrConnectWithoutFbaOrdersInputSchema: z.ZodType<Prisma.CustomerCreateOrConnectWithoutFbaOrdersInput> = z.object({
@@ -12708,6 +13752,35 @@ export const AttachmentCreateOrConnectWithoutWaybillInputSchema: z.ZodType<Prism
 export const AttachmentCreateManyWaybillInputEnvelopeSchema: z.ZodType<Prisma.AttachmentCreateManyWaybillInputEnvelope> = z.object({
   data: z.union([ z.lazy(() => AttachmentCreateManyWaybillInputSchema),z.lazy(() => AttachmentCreateManyWaybillInputSchema).array() ]),
   skipDuplicates: z.boolean().optional()
+}).strict();
+
+export const FinanceBillCreateWithoutWaybillsInputSchema: z.ZodType<Prisma.FinanceBillCreateWithoutWaybillsInput> = z.object({
+  id: z.string().uuid().optional(),
+  billNo: z.string(),
+  totalAmount: z.number(),
+  status: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  customer: z.lazy(() => CustomerCreateNestedOneWithoutBillsInputSchema),
+  logs: z.lazy(() => BillLogCreateNestedManyWithoutBillInputSchema).optional(),
+  attachments: z.lazy(() => BillAttachmentCreateNestedManyWithoutBillInputSchema).optional()
+}).strict();
+
+export const FinanceBillUncheckedCreateWithoutWaybillsInputSchema: z.ZodType<Prisma.FinanceBillUncheckedCreateWithoutWaybillsInput> = z.object({
+  id: z.string().uuid().optional(),
+  billNo: z.string(),
+  customerId: z.string(),
+  totalAmount: z.number(),
+  status: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  logs: z.lazy(() => BillLogUncheckedCreateNestedManyWithoutBillInputSchema).optional(),
+  attachments: z.lazy(() => BillAttachmentUncheckedCreateNestedManyWithoutBillInputSchema).optional()
+}).strict();
+
+export const FinanceBillCreateOrConnectWithoutWaybillsInputSchema: z.ZodType<Prisma.FinanceBillCreateOrConnectWithoutWaybillsInput> = z.object({
+  where: z.lazy(() => FinanceBillWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => FinanceBillCreateWithoutWaybillsInputSchema),z.lazy(() => FinanceBillUncheckedCreateWithoutWaybillsInputSchema) ]),
 }).strict();
 
 export const ChannelUpsertWithoutFbaOrdersInputSchema: z.ZodType<Prisma.ChannelUpsertWithoutFbaOrdersInput> = z.object({
@@ -12962,7 +14035,8 @@ export const CustomerUpdateWithoutOrdersInputSchema: z.ZodType<Prisma.CustomerUp
   tenant: z.lazy(() => TenantUpdateOneRequiredWithoutCustomersNestedInputSchema).optional(),
   fbaOrders: z.lazy(() => FBAOrderUpdateManyWithoutSenderNestedInputSchema).optional(),
   positions: z.lazy(() => PositionUpdateManyWithoutCustomerNestedInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogUpdateManyWithoutCustomerNestedInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogUpdateManyWithoutCustomerNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUpdateManyWithoutCustomerNestedInputSchema).optional()
 }).strict();
 
 export const CustomerUncheckedUpdateWithoutOrdersInputSchema: z.ZodType<Prisma.CustomerUncheckedUpdateWithoutOrdersInput> = z.object({
@@ -12984,7 +14058,8 @@ export const CustomerUncheckedUpdateWithoutOrdersInputSchema: z.ZodType<Prisma.C
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   fbaOrders: z.lazy(() => FBAOrderUncheckedUpdateManyWithoutSenderNestedInputSchema).optional(),
   positions: z.lazy(() => PositionUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional()
 }).strict();
 
 export const UserUpsertWithoutFbaOrdersInputSchema: z.ZodType<Prisma.UserUpsertWithoutFbaOrdersInput> = z.object({
@@ -13056,7 +14131,8 @@ export const CustomerUpdateWithoutFbaOrdersInputSchema: z.ZodType<Prisma.Custome
   tenant: z.lazy(() => TenantUpdateOneRequiredWithoutCustomersNestedInputSchema).optional(),
   orders: z.lazy(() => FBAOrderUpdateManyWithoutCustomerNestedInputSchema).optional(),
   positions: z.lazy(() => PositionUpdateManyWithoutCustomerNestedInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogUpdateManyWithoutCustomerNestedInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogUpdateManyWithoutCustomerNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUpdateManyWithoutCustomerNestedInputSchema).optional()
 }).strict();
 
 export const CustomerUncheckedUpdateWithoutFbaOrdersInputSchema: z.ZodType<Prisma.CustomerUncheckedUpdateWithoutFbaOrdersInput> = z.object({
@@ -13078,7 +14154,8 @@ export const CustomerUncheckedUpdateWithoutFbaOrdersInputSchema: z.ZodType<Prism
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   orders: z.lazy(() => FBAOrderUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional(),
   positions: z.lazy(() => PositionUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional()
 }).strict();
 
 export const BoxUpsertWithWhereUniqueWithoutFbaOrderInputSchema: z.ZodType<Prisma.BoxUpsertWithWhereUniqueWithoutFbaOrderInput> = z.object({
@@ -13244,6 +14321,22 @@ export const AttachmentScalarWhereInputSchema: z.ZodType<Prisma.AttachmentScalar
   waybillId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
 }).strict();
 
+export const FinanceBillUpsertWithWhereUniqueWithoutWaybillsInputSchema: z.ZodType<Prisma.FinanceBillUpsertWithWhereUniqueWithoutWaybillsInput> = z.object({
+  where: z.lazy(() => FinanceBillWhereUniqueInputSchema),
+  update: z.union([ z.lazy(() => FinanceBillUpdateWithoutWaybillsInputSchema),z.lazy(() => FinanceBillUncheckedUpdateWithoutWaybillsInputSchema) ]),
+  create: z.union([ z.lazy(() => FinanceBillCreateWithoutWaybillsInputSchema),z.lazy(() => FinanceBillUncheckedCreateWithoutWaybillsInputSchema) ]),
+}).strict();
+
+export const FinanceBillUpdateWithWhereUniqueWithoutWaybillsInputSchema: z.ZodType<Prisma.FinanceBillUpdateWithWhereUniqueWithoutWaybillsInput> = z.object({
+  where: z.lazy(() => FinanceBillWhereUniqueInputSchema),
+  data: z.union([ z.lazy(() => FinanceBillUpdateWithoutWaybillsInputSchema),z.lazy(() => FinanceBillUncheckedUpdateWithoutWaybillsInputSchema) ]),
+}).strict();
+
+export const FinanceBillUpdateManyWithWhereWithoutWaybillsInputSchema: z.ZodType<Prisma.FinanceBillUpdateManyWithWhereWithoutWaybillsInput> = z.object({
+  where: z.lazy(() => FinanceBillScalarWhereInputSchema),
+  data: z.union([ z.lazy(() => FinanceBillUpdateManyMutationInputSchema),z.lazy(() => FinanceBillUncheckedUpdateManyWithoutWaybillsInputSchema) ]),
+}).strict();
+
 export const FBAOrderCreateWithoutAttachmentsInputSchema: z.ZodType<Prisma.FBAOrderCreateWithoutAttachmentsInput> = z.object({
   id: z.string().uuid().optional(),
   freightCost: z.number().optional().nullable(),
@@ -13309,7 +14402,8 @@ export const FBAOrderCreateWithoutAttachmentsInputSchema: z.ZodType<Prisma.FBAOr
   boxes: z.lazy(() => BoxCreateNestedManyWithoutFbaOrderInputSchema).optional(),
   waybillRule: z.lazy(() => WaybillRuleCreateNestedOneWithoutFbaOrdersInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogCreateNestedManyWithoutShipmentInputSchema).optional(),
-  carrier: z.lazy(() => CarrierCreateNestedOneWithoutFbaOrdersInputSchema).optional()
+  carrier: z.lazy(() => CarrierCreateNestedOneWithoutFbaOrdersInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillCreateNestedManyWithoutWaybillsInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedCreateWithoutAttachmentsInputSchema: z.ZodType<Prisma.FBAOrderUncheckedCreateWithoutAttachmentsInput> = z.object({
@@ -13377,7 +14471,8 @@ export const FBAOrderUncheckedCreateWithoutAttachmentsInputSchema: z.ZodType<Pri
   errors: z.union([ z.lazy(() => FBAOrderCreateerrorsInputSchema),z.string().array() ]).optional(),
   carrierId: z.string().optional().nullable(),
   boxes: z.lazy(() => BoxUncheckedCreateNestedManyWithoutFbaOrderInputSchema).optional(),
-  logs: z.lazy(() => ShipmentLogUncheckedCreateNestedManyWithoutShipmentInputSchema).optional()
+  logs: z.lazy(() => ShipmentLogUncheckedCreateNestedManyWithoutShipmentInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedCreateNestedManyWithoutWaybillsInputSchema).optional()
 }).strict();
 
 export const FBAOrderCreateOrConnectWithoutAttachmentsInputSchema: z.ZodType<Prisma.FBAOrderCreateOrConnectWithoutAttachmentsInput> = z.object({
@@ -13461,7 +14556,8 @@ export const FBAOrderUpdateWithoutAttachmentsInputSchema: z.ZodType<Prisma.FBAOr
   boxes: z.lazy(() => BoxUpdateManyWithoutFbaOrderNestedInputSchema).optional(),
   waybillRule: z.lazy(() => WaybillRuleUpdateOneWithoutFbaOrdersNestedInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUpdateManyWithoutShipmentNestedInputSchema).optional(),
-  carrier: z.lazy(() => CarrierUpdateOneWithoutFbaOrdersNestedInputSchema).optional()
+  carrier: z.lazy(() => CarrierUpdateOneWithoutFbaOrdersNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUpdateManyWithoutWaybillsNestedInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedUpdateWithoutAttachmentsInputSchema: z.ZodType<Prisma.FBAOrderUncheckedUpdateWithoutAttachmentsInput> = z.object({
@@ -13529,7 +14625,8 @@ export const FBAOrderUncheckedUpdateWithoutAttachmentsInputSchema: z.ZodType<Pri
   errors: z.union([ z.lazy(() => FBAOrderUpdateerrorsInputSchema),z.string().array() ]).optional(),
   carrierId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   boxes: z.lazy(() => BoxUncheckedUpdateManyWithoutFbaOrderNestedInputSchema).optional(),
-  logs: z.lazy(() => ShipmentLogUncheckedUpdateManyWithoutShipmentNestedInputSchema).optional()
+  logs: z.lazy(() => ShipmentLogUncheckedUpdateManyWithoutShipmentNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedUpdateManyWithoutWaybillsNestedInputSchema).optional()
 }).strict();
 
 export const ChannelCreateWithoutCarrierInputSchema: z.ZodType<Prisma.ChannelCreateWithoutCarrierInput> = z.object({
@@ -13787,7 +14884,8 @@ export const FBAOrderCreateWithoutCarrierInputSchema: z.ZodType<Prisma.FBAOrderC
   boxes: z.lazy(() => BoxCreateNestedManyWithoutFbaOrderInputSchema).optional(),
   waybillRule: z.lazy(() => WaybillRuleCreateNestedOneWithoutFbaOrdersInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogCreateNestedManyWithoutShipmentInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentCreateNestedManyWithoutWaybillInputSchema).optional()
+  attachments: z.lazy(() => AttachmentCreateNestedManyWithoutWaybillInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillCreateNestedManyWithoutWaybillsInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedCreateWithoutCarrierInputSchema: z.ZodType<Prisma.FBAOrderUncheckedCreateWithoutCarrierInput> = z.object({
@@ -13855,7 +14953,8 @@ export const FBAOrderUncheckedCreateWithoutCarrierInputSchema: z.ZodType<Prisma.
   errors: z.union([ z.lazy(() => FBAOrderCreateerrorsInputSchema),z.string().array() ]).optional(),
   boxes: z.lazy(() => BoxUncheckedCreateNestedManyWithoutFbaOrderInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUncheckedCreateNestedManyWithoutShipmentInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUncheckedCreateNestedManyWithoutWaybillInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUncheckedCreateNestedManyWithoutWaybillInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedCreateNestedManyWithoutWaybillsInputSchema).optional()
 }).strict();
 
 export const FBAOrderCreateOrConnectWithoutCarrierInputSchema: z.ZodType<Prisma.FBAOrderCreateOrConnectWithoutCarrierInput> = z.object({
@@ -14116,7 +15215,8 @@ export const FBAOrderCreateWithoutChannelInputSchema: z.ZodType<Prisma.FBAOrderC
   waybillRule: z.lazy(() => WaybillRuleCreateNestedOneWithoutFbaOrdersInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogCreateNestedManyWithoutShipmentInputSchema).optional(),
   carrier: z.lazy(() => CarrierCreateNestedOneWithoutFbaOrdersInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentCreateNestedManyWithoutWaybillInputSchema).optional()
+  attachments: z.lazy(() => AttachmentCreateNestedManyWithoutWaybillInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillCreateNestedManyWithoutWaybillsInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedCreateWithoutChannelInputSchema: z.ZodType<Prisma.FBAOrderUncheckedCreateWithoutChannelInput> = z.object({
@@ -14184,7 +15284,8 @@ export const FBAOrderUncheckedCreateWithoutChannelInputSchema: z.ZodType<Prisma.
   carrierId: z.string().optional().nullable(),
   boxes: z.lazy(() => BoxUncheckedCreateNestedManyWithoutFbaOrderInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUncheckedCreateNestedManyWithoutShipmentInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUncheckedCreateNestedManyWithoutWaybillInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUncheckedCreateNestedManyWithoutWaybillInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedCreateNestedManyWithoutWaybillsInputSchema).optional()
 }).strict();
 
 export const FBAOrderCreateOrConnectWithoutChannelInputSchema: z.ZodType<Prisma.FBAOrderCreateOrConnectWithoutChannelInput> = z.object({
@@ -15078,7 +16179,8 @@ export const FBAOrderCreateWithoutWaybillRuleInputSchema: z.ZodType<Prisma.FBAOr
   boxes: z.lazy(() => BoxCreateNestedManyWithoutFbaOrderInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogCreateNestedManyWithoutShipmentInputSchema).optional(),
   carrier: z.lazy(() => CarrierCreateNestedOneWithoutFbaOrdersInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentCreateNestedManyWithoutWaybillInputSchema).optional()
+  attachments: z.lazy(() => AttachmentCreateNestedManyWithoutWaybillInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillCreateNestedManyWithoutWaybillsInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedCreateWithoutWaybillRuleInputSchema: z.ZodType<Prisma.FBAOrderUncheckedCreateWithoutWaybillRuleInput> = z.object({
@@ -15146,7 +16248,8 @@ export const FBAOrderUncheckedCreateWithoutWaybillRuleInputSchema: z.ZodType<Pri
   carrierId: z.string().optional().nullable(),
   boxes: z.lazy(() => BoxUncheckedCreateNestedManyWithoutFbaOrderInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUncheckedCreateNestedManyWithoutShipmentInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUncheckedCreateNestedManyWithoutWaybillInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUncheckedCreateNestedManyWithoutWaybillInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedCreateNestedManyWithoutWaybillsInputSchema).optional()
 }).strict();
 
 export const FBAOrderCreateOrConnectWithoutWaybillRuleInputSchema: z.ZodType<Prisma.FBAOrderCreateOrConnectWithoutWaybillRuleInput> = z.object({
@@ -16598,7 +17701,8 @@ export const CustomerCreateWithoutPositionsInputSchema: z.ZodType<Prisma.Custome
   tenant: z.lazy(() => TenantCreateNestedOneWithoutCustomersInputSchema),
   fbaOrders: z.lazy(() => FBAOrderCreateNestedManyWithoutSenderInputSchema).optional(),
   orders: z.lazy(() => FBAOrderCreateNestedManyWithoutCustomerInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogCreateNestedManyWithoutCustomerInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogCreateNestedManyWithoutCustomerInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillCreateNestedManyWithoutCustomerInputSchema).optional()
 }).strict();
 
 export const CustomerUncheckedCreateWithoutPositionsInputSchema: z.ZodType<Prisma.CustomerUncheckedCreateWithoutPositionsInput> = z.object({
@@ -16620,7 +17724,8 @@ export const CustomerUncheckedCreateWithoutPositionsInputSchema: z.ZodType<Prism
   updatedAt: z.coerce.date().optional(),
   fbaOrders: z.lazy(() => FBAOrderUncheckedCreateNestedManyWithoutSenderInputSchema).optional(),
   orders: z.lazy(() => FBAOrderUncheckedCreateNestedManyWithoutCustomerInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogUncheckedCreateNestedManyWithoutCustomerInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogUncheckedCreateNestedManyWithoutCustomerInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedCreateNestedManyWithoutCustomerInputSchema).optional()
 }).strict();
 
 export const CustomerCreateOrConnectWithoutPositionsInputSchema: z.ZodType<Prisma.CustomerCreateOrConnectWithoutPositionsInput> = z.object({
@@ -16684,7 +17789,8 @@ export const CustomerUpdateWithoutPositionsInputSchema: z.ZodType<Prisma.Custome
   tenant: z.lazy(() => TenantUpdateOneRequiredWithoutCustomersNestedInputSchema).optional(),
   fbaOrders: z.lazy(() => FBAOrderUpdateManyWithoutSenderNestedInputSchema).optional(),
   orders: z.lazy(() => FBAOrderUpdateManyWithoutCustomerNestedInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogUpdateManyWithoutCustomerNestedInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogUpdateManyWithoutCustomerNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUpdateManyWithoutCustomerNestedInputSchema).optional()
 }).strict();
 
 export const CustomerUncheckedUpdateWithoutPositionsInputSchema: z.ZodType<Prisma.CustomerUncheckedUpdateWithoutPositionsInput> = z.object({
@@ -16706,7 +17812,8 @@ export const CustomerUncheckedUpdateWithoutPositionsInputSchema: z.ZodType<Prism
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   fbaOrders: z.lazy(() => FBAOrderUncheckedUpdateManyWithoutSenderNestedInputSchema).optional(),
   orders: z.lazy(() => FBAOrderUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional()
 }).strict();
 
 export const PositionMemberUpsertWithWhereUniqueWithoutPositionInputSchema: z.ZodType<Prisma.PositionMemberUpsertWithWhereUniqueWithoutPositionInput> = z.object({
@@ -16800,7 +17907,8 @@ export const CustomerCreateWithoutLoginLogsInputSchema: z.ZodType<Prisma.Custome
   tenant: z.lazy(() => TenantCreateNestedOneWithoutCustomersInputSchema),
   fbaOrders: z.lazy(() => FBAOrderCreateNestedManyWithoutSenderInputSchema).optional(),
   orders: z.lazy(() => FBAOrderCreateNestedManyWithoutCustomerInputSchema).optional(),
-  positions: z.lazy(() => PositionCreateNestedManyWithoutCustomerInputSchema).optional()
+  positions: z.lazy(() => PositionCreateNestedManyWithoutCustomerInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillCreateNestedManyWithoutCustomerInputSchema).optional()
 }).strict();
 
 export const CustomerUncheckedCreateWithoutLoginLogsInputSchema: z.ZodType<Prisma.CustomerUncheckedCreateWithoutLoginLogsInput> = z.object({
@@ -16822,7 +17930,8 @@ export const CustomerUncheckedCreateWithoutLoginLogsInputSchema: z.ZodType<Prism
   updatedAt: z.coerce.date().optional(),
   fbaOrders: z.lazy(() => FBAOrderUncheckedCreateNestedManyWithoutSenderInputSchema).optional(),
   orders: z.lazy(() => FBAOrderUncheckedCreateNestedManyWithoutCustomerInputSchema).optional(),
-  positions: z.lazy(() => PositionUncheckedCreateNestedManyWithoutCustomerInputSchema).optional()
+  positions: z.lazy(() => PositionUncheckedCreateNestedManyWithoutCustomerInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedCreateNestedManyWithoutCustomerInputSchema).optional()
 }).strict();
 
 export const CustomerCreateOrConnectWithoutLoginLogsInputSchema: z.ZodType<Prisma.CustomerCreateOrConnectWithoutLoginLogsInput> = z.object({
@@ -16860,7 +17969,8 @@ export const CustomerUpdateWithoutLoginLogsInputSchema: z.ZodType<Prisma.Custome
   tenant: z.lazy(() => TenantUpdateOneRequiredWithoutCustomersNestedInputSchema).optional(),
   fbaOrders: z.lazy(() => FBAOrderUpdateManyWithoutSenderNestedInputSchema).optional(),
   orders: z.lazy(() => FBAOrderUpdateManyWithoutCustomerNestedInputSchema).optional(),
-  positions: z.lazy(() => PositionUpdateManyWithoutCustomerNestedInputSchema).optional()
+  positions: z.lazy(() => PositionUpdateManyWithoutCustomerNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUpdateManyWithoutCustomerNestedInputSchema).optional()
 }).strict();
 
 export const CustomerUncheckedUpdateWithoutLoginLogsInputSchema: z.ZodType<Prisma.CustomerUncheckedUpdateWithoutLoginLogsInput> = z.object({
@@ -16882,7 +17992,511 @@ export const CustomerUncheckedUpdateWithoutLoginLogsInputSchema: z.ZodType<Prism
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   fbaOrders: z.lazy(() => FBAOrderUncheckedUpdateManyWithoutSenderNestedInputSchema).optional(),
   orders: z.lazy(() => FBAOrderUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional(),
-  positions: z.lazy(() => PositionUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional()
+  positions: z.lazy(() => PositionUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional()
+}).strict();
+
+export const CustomerCreateWithoutBillsInputSchema: z.ZodType<Prisma.CustomerCreateWithoutBillsInput> = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string(),
+  companyName: z.string().optional().nullable(),
+  email: z.string().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
+  status: z.lazy(() => CustomerStatusSchema).optional(),
+  settlementMethod: z.lazy(() => SettlementMethodSchema).optional(),
+  businessLicense: z.string().optional().nullable(),
+  idCard: z.string().optional().nullable(),
+  attachments: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  notes: z.string().optional().nullable(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  financeContact: z.lazy(() => UserCreateNestedOneWithoutFinanceCustomersInputSchema).optional(),
+  tenant: z.lazy(() => TenantCreateNestedOneWithoutCustomersInputSchema),
+  fbaOrders: z.lazy(() => FBAOrderCreateNestedManyWithoutSenderInputSchema).optional(),
+  orders: z.lazy(() => FBAOrderCreateNestedManyWithoutCustomerInputSchema).optional(),
+  positions: z.lazy(() => PositionCreateNestedManyWithoutCustomerInputSchema).optional(),
+  loginLogs: z.lazy(() => LoginLogCreateNestedManyWithoutCustomerInputSchema).optional()
+}).strict();
+
+export const CustomerUncheckedCreateWithoutBillsInputSchema: z.ZodType<Prisma.CustomerUncheckedCreateWithoutBillsInput> = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string(),
+  companyName: z.string().optional().nullable(),
+  tenantId: z.string(),
+  email: z.string().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
+  status: z.lazy(() => CustomerStatusSchema).optional(),
+  settlementMethod: z.lazy(() => SettlementMethodSchema).optional(),
+  financeContactId: z.string().optional().nullable(),
+  businessLicense: z.string().optional().nullable(),
+  idCard: z.string().optional().nullable(),
+  attachments: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  notes: z.string().optional().nullable(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  fbaOrders: z.lazy(() => FBAOrderUncheckedCreateNestedManyWithoutSenderInputSchema).optional(),
+  orders: z.lazy(() => FBAOrderUncheckedCreateNestedManyWithoutCustomerInputSchema).optional(),
+  positions: z.lazy(() => PositionUncheckedCreateNestedManyWithoutCustomerInputSchema).optional(),
+  loginLogs: z.lazy(() => LoginLogUncheckedCreateNestedManyWithoutCustomerInputSchema).optional()
+}).strict();
+
+export const CustomerCreateOrConnectWithoutBillsInputSchema: z.ZodType<Prisma.CustomerCreateOrConnectWithoutBillsInput> = z.object({
+  where: z.lazy(() => CustomerWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => CustomerCreateWithoutBillsInputSchema),z.lazy(() => CustomerUncheckedCreateWithoutBillsInputSchema) ]),
+}).strict();
+
+export const FBAOrderCreateWithoutBillsInputSchema: z.ZodType<Prisma.FBAOrderCreateWithoutBillsInput> = z.object({
+  id: z.string().uuid().optional(),
+  freightCost: z.number().optional().nullable(),
+  totalCost: z.number().optional().nullable(),
+  recipient: z.string(),
+  country: z.string(),
+  quantity: z.number().int(),
+  weight: z.number().optional().nullable(),
+  volume: z.number().optional().nullable(),
+  volumetricWeight: z.number().optional().nullable(),
+  chargeWeight: z.number().optional().nullable(),
+  cargo: z.string().optional().nullable(),
+  status: z.lazy(() => OrderStatusSchema),
+  createdAt: z.coerce.date().optional(),
+  type: z.string(),
+  warehouse: z.string().optional().nullable(),
+  length: z.number().optional().nullable(),
+  width: z.number().optional().nullable(),
+  height: z.number().optional().nullable(),
+  hasBattery: z.boolean().optional(),
+  hasMagnetic: z.boolean().optional(),
+  hasDangerous: z.boolean().optional(),
+  hasLiquid: z.boolean().optional(),
+  hasPowder: z.boolean().optional(),
+  clientCode: z.string().optional().nullable(),
+  company: z.string().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  email: z.string().optional().nullable(),
+  store: z.string().optional().nullable(),
+  ref1: z.string().optional().nullable(),
+  vat: z.string().optional().nullable(),
+  ioss: z.string().optional().nullable(),
+  eori: z.string().optional().nullable(),
+  currency: z.string().optional().nullable(),
+  category: z.string().optional().nullable(),
+  productName: z.string().optional().nullable(),
+  attrs: z.union([ z.lazy(() => FBAOrderCreateattrsInputSchema),z.string().array() ]).optional(),
+  notes: z.string().optional().nullable(),
+  insurance: z.boolean().optional(),
+  address1: z.string().optional().nullable(),
+  address2: z.string().optional().nullable(),
+  address3: z.string().optional().nullable(),
+  addressDetail: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
+  state: z.string().optional().nullable(),
+  postalCode: z.string().optional().nullable(),
+  declaredValue: z.string().optional().nullable(),
+  declaredQuantity: z.string().optional().nullable(),
+  senderName: z.string().optional().nullable(),
+  extraFee: z.number().optional().nullable(),
+  waybillNumber: z.string().optional().nullable(),
+  billingPrecision: z.number().int().optional().nullable(),
+  isCOD: z.boolean().optional(),
+  allowCustomerCancel: z.boolean().optional(),
+  trackingNumber: z.string().optional().nullable(),
+  labelUploaded: z.boolean().optional(),
+  errors: z.union([ z.lazy(() => FBAOrderCreateerrorsInputSchema),z.string().array() ]).optional(),
+  channel: z.lazy(() => ChannelCreateNestedOneWithoutFbaOrdersInputSchema),
+  tenant: z.lazy(() => TenantCreateNestedOneWithoutFbaOrdersInputSchema),
+  customer: z.lazy(() => CustomerCreateNestedOneWithoutOrdersInputSchema),
+  user: z.lazy(() => UserCreateNestedOneWithoutFbaOrdersInputSchema),
+  sender: z.lazy(() => CustomerCreateNestedOneWithoutFbaOrdersInputSchema).optional(),
+  boxes: z.lazy(() => BoxCreateNestedManyWithoutFbaOrderInputSchema).optional(),
+  waybillRule: z.lazy(() => WaybillRuleCreateNestedOneWithoutFbaOrdersInputSchema).optional(),
+  logs: z.lazy(() => ShipmentLogCreateNestedManyWithoutShipmentInputSchema).optional(),
+  carrier: z.lazy(() => CarrierCreateNestedOneWithoutFbaOrdersInputSchema).optional(),
+  attachments: z.lazy(() => AttachmentCreateNestedManyWithoutWaybillInputSchema).optional()
+}).strict();
+
+export const FBAOrderUncheckedCreateWithoutBillsInputSchema: z.ZodType<Prisma.FBAOrderUncheckedCreateWithoutBillsInput> = z.object({
+  id: z.string().uuid().optional(),
+  channelId: z.string(),
+  freightCost: z.number().optional().nullable(),
+  totalCost: z.number().optional().nullable(),
+  recipient: z.string(),
+  country: z.string(),
+  quantity: z.number().int(),
+  weight: z.number().optional().nullable(),
+  volume: z.number().optional().nullable(),
+  volumetricWeight: z.number().optional().nullable(),
+  chargeWeight: z.number().optional().nullable(),
+  cargo: z.string().optional().nullable(),
+  status: z.lazy(() => OrderStatusSchema),
+  createdAt: z.coerce.date().optional(),
+  tenantId: z.string(),
+  customerId: z.string(),
+  userId: z.string(),
+  type: z.string(),
+  warehouse: z.string().optional().nullable(),
+  length: z.number().optional().nullable(),
+  width: z.number().optional().nullable(),
+  height: z.number().optional().nullable(),
+  hasBattery: z.boolean().optional(),
+  hasMagnetic: z.boolean().optional(),
+  hasDangerous: z.boolean().optional(),
+  hasLiquid: z.boolean().optional(),
+  hasPowder: z.boolean().optional(),
+  clientCode: z.string().optional().nullable(),
+  company: z.string().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  email: z.string().optional().nullable(),
+  store: z.string().optional().nullable(),
+  ref1: z.string().optional().nullable(),
+  vat: z.string().optional().nullable(),
+  ioss: z.string().optional().nullable(),
+  eori: z.string().optional().nullable(),
+  currency: z.string().optional().nullable(),
+  category: z.string().optional().nullable(),
+  productName: z.string().optional().nullable(),
+  attrs: z.union([ z.lazy(() => FBAOrderCreateattrsInputSchema),z.string().array() ]).optional(),
+  notes: z.string().optional().nullable(),
+  insurance: z.boolean().optional(),
+  address1: z.string().optional().nullable(),
+  address2: z.string().optional().nullable(),
+  address3: z.string().optional().nullable(),
+  addressDetail: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
+  state: z.string().optional().nullable(),
+  postalCode: z.string().optional().nullable(),
+  declaredValue: z.string().optional().nullable(),
+  declaredQuantity: z.string().optional().nullable(),
+  senderId: z.string().optional().nullable(),
+  senderName: z.string().optional().nullable(),
+  extraFee: z.number().optional().nullable(),
+  waybillRuleId: z.string().optional().nullable(),
+  waybillNumber: z.string().optional().nullable(),
+  billingPrecision: z.number().int().optional().nullable(),
+  isCOD: z.boolean().optional(),
+  allowCustomerCancel: z.boolean().optional(),
+  trackingNumber: z.string().optional().nullable(),
+  labelUploaded: z.boolean().optional(),
+  errors: z.union([ z.lazy(() => FBAOrderCreateerrorsInputSchema),z.string().array() ]).optional(),
+  carrierId: z.string().optional().nullable(),
+  boxes: z.lazy(() => BoxUncheckedCreateNestedManyWithoutFbaOrderInputSchema).optional(),
+  logs: z.lazy(() => ShipmentLogUncheckedCreateNestedManyWithoutShipmentInputSchema).optional(),
+  attachments: z.lazy(() => AttachmentUncheckedCreateNestedManyWithoutWaybillInputSchema).optional()
+}).strict();
+
+export const FBAOrderCreateOrConnectWithoutBillsInputSchema: z.ZodType<Prisma.FBAOrderCreateOrConnectWithoutBillsInput> = z.object({
+  where: z.lazy(() => FBAOrderWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => FBAOrderCreateWithoutBillsInputSchema),z.lazy(() => FBAOrderUncheckedCreateWithoutBillsInputSchema) ]),
+}).strict();
+
+export const BillLogCreateWithoutBillInputSchema: z.ZodType<Prisma.BillLogCreateWithoutBillInput> = z.object({
+  id: z.string().uuid().optional(),
+  status: z.string(),
+  remark: z.string().optional().nullable(),
+  timestamp: z.coerce.date().optional()
+}).strict();
+
+export const BillLogUncheckedCreateWithoutBillInputSchema: z.ZodType<Prisma.BillLogUncheckedCreateWithoutBillInput> = z.object({
+  id: z.string().uuid().optional(),
+  status: z.string(),
+  remark: z.string().optional().nullable(),
+  timestamp: z.coerce.date().optional()
+}).strict();
+
+export const BillLogCreateOrConnectWithoutBillInputSchema: z.ZodType<Prisma.BillLogCreateOrConnectWithoutBillInput> = z.object({
+  where: z.lazy(() => BillLogWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => BillLogCreateWithoutBillInputSchema),z.lazy(() => BillLogUncheckedCreateWithoutBillInputSchema) ]),
+}).strict();
+
+export const BillLogCreateManyBillInputEnvelopeSchema: z.ZodType<Prisma.BillLogCreateManyBillInputEnvelope> = z.object({
+  data: z.union([ z.lazy(() => BillLogCreateManyBillInputSchema),z.lazy(() => BillLogCreateManyBillInputSchema).array() ]),
+  skipDuplicates: z.boolean().optional()
+}).strict();
+
+export const BillAttachmentCreateWithoutBillInputSchema: z.ZodType<Prisma.BillAttachmentCreateWithoutBillInput> = z.object({
+  id: z.string().uuid().optional(),
+  url: z.string(),
+  filename: z.string(),
+  fileSize: z.number().int().optional().nullable(),
+  mimeType: z.string().optional().nullable(),
+  createdAt: z.coerce.date().optional()
+}).strict();
+
+export const BillAttachmentUncheckedCreateWithoutBillInputSchema: z.ZodType<Prisma.BillAttachmentUncheckedCreateWithoutBillInput> = z.object({
+  id: z.string().uuid().optional(),
+  url: z.string(),
+  filename: z.string(),
+  fileSize: z.number().int().optional().nullable(),
+  mimeType: z.string().optional().nullable(),
+  createdAt: z.coerce.date().optional()
+}).strict();
+
+export const BillAttachmentCreateOrConnectWithoutBillInputSchema: z.ZodType<Prisma.BillAttachmentCreateOrConnectWithoutBillInput> = z.object({
+  where: z.lazy(() => BillAttachmentWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => BillAttachmentCreateWithoutBillInputSchema),z.lazy(() => BillAttachmentUncheckedCreateWithoutBillInputSchema) ]),
+}).strict();
+
+export const BillAttachmentCreateManyBillInputEnvelopeSchema: z.ZodType<Prisma.BillAttachmentCreateManyBillInputEnvelope> = z.object({
+  data: z.union([ z.lazy(() => BillAttachmentCreateManyBillInputSchema),z.lazy(() => BillAttachmentCreateManyBillInputSchema).array() ]),
+  skipDuplicates: z.boolean().optional()
+}).strict();
+
+export const CustomerUpsertWithoutBillsInputSchema: z.ZodType<Prisma.CustomerUpsertWithoutBillsInput> = z.object({
+  update: z.union([ z.lazy(() => CustomerUpdateWithoutBillsInputSchema),z.lazy(() => CustomerUncheckedUpdateWithoutBillsInputSchema) ]),
+  create: z.union([ z.lazy(() => CustomerCreateWithoutBillsInputSchema),z.lazy(() => CustomerUncheckedCreateWithoutBillsInputSchema) ]),
+  where: z.lazy(() => CustomerWhereInputSchema).optional()
+}).strict();
+
+export const CustomerUpdateToOneWithWhereWithoutBillsInputSchema: z.ZodType<Prisma.CustomerUpdateToOneWithWhereWithoutBillsInput> = z.object({
+  where: z.lazy(() => CustomerWhereInputSchema).optional(),
+  data: z.union([ z.lazy(() => CustomerUpdateWithoutBillsInputSchema),z.lazy(() => CustomerUncheckedUpdateWithoutBillsInputSchema) ]),
+}).strict();
+
+export const CustomerUpdateWithoutBillsInputSchema: z.ZodType<Prisma.CustomerUpdateWithoutBillsInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  companyName: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  email: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  phone: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  address: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  status: z.union([ z.lazy(() => CustomerStatusSchema),z.lazy(() => EnumCustomerStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  settlementMethod: z.union([ z.lazy(() => SettlementMethodSchema),z.lazy(() => EnumSettlementMethodFieldUpdateOperationsInputSchema) ]).optional(),
+  businessLicense: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  idCard: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  attachments: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  notes: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  financeContact: z.lazy(() => UserUpdateOneWithoutFinanceCustomersNestedInputSchema).optional(),
+  tenant: z.lazy(() => TenantUpdateOneRequiredWithoutCustomersNestedInputSchema).optional(),
+  fbaOrders: z.lazy(() => FBAOrderUpdateManyWithoutSenderNestedInputSchema).optional(),
+  orders: z.lazy(() => FBAOrderUpdateManyWithoutCustomerNestedInputSchema).optional(),
+  positions: z.lazy(() => PositionUpdateManyWithoutCustomerNestedInputSchema).optional(),
+  loginLogs: z.lazy(() => LoginLogUpdateManyWithoutCustomerNestedInputSchema).optional()
+}).strict();
+
+export const CustomerUncheckedUpdateWithoutBillsInputSchema: z.ZodType<Prisma.CustomerUncheckedUpdateWithoutBillsInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  companyName: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  tenantId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  email: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  phone: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  address: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  status: z.union([ z.lazy(() => CustomerStatusSchema),z.lazy(() => EnumCustomerStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  settlementMethod: z.union([ z.lazy(() => SettlementMethodSchema),z.lazy(() => EnumSettlementMethodFieldUpdateOperationsInputSchema) ]).optional(),
+  financeContactId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  businessLicense: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  idCard: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  attachments: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  notes: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  fbaOrders: z.lazy(() => FBAOrderUncheckedUpdateManyWithoutSenderNestedInputSchema).optional(),
+  orders: z.lazy(() => FBAOrderUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional(),
+  positions: z.lazy(() => PositionUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional(),
+  loginLogs: z.lazy(() => LoginLogUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional()
+}).strict();
+
+export const FBAOrderUpsertWithWhereUniqueWithoutBillsInputSchema: z.ZodType<Prisma.FBAOrderUpsertWithWhereUniqueWithoutBillsInput> = z.object({
+  where: z.lazy(() => FBAOrderWhereUniqueInputSchema),
+  update: z.union([ z.lazy(() => FBAOrderUpdateWithoutBillsInputSchema),z.lazy(() => FBAOrderUncheckedUpdateWithoutBillsInputSchema) ]),
+  create: z.union([ z.lazy(() => FBAOrderCreateWithoutBillsInputSchema),z.lazy(() => FBAOrderUncheckedCreateWithoutBillsInputSchema) ]),
+}).strict();
+
+export const FBAOrderUpdateWithWhereUniqueWithoutBillsInputSchema: z.ZodType<Prisma.FBAOrderUpdateWithWhereUniqueWithoutBillsInput> = z.object({
+  where: z.lazy(() => FBAOrderWhereUniqueInputSchema),
+  data: z.union([ z.lazy(() => FBAOrderUpdateWithoutBillsInputSchema),z.lazy(() => FBAOrderUncheckedUpdateWithoutBillsInputSchema) ]),
+}).strict();
+
+export const FBAOrderUpdateManyWithWhereWithoutBillsInputSchema: z.ZodType<Prisma.FBAOrderUpdateManyWithWhereWithoutBillsInput> = z.object({
+  where: z.lazy(() => FBAOrderScalarWhereInputSchema),
+  data: z.union([ z.lazy(() => FBAOrderUpdateManyMutationInputSchema),z.lazy(() => FBAOrderUncheckedUpdateManyWithoutBillsInputSchema) ]),
+}).strict();
+
+export const BillLogUpsertWithWhereUniqueWithoutBillInputSchema: z.ZodType<Prisma.BillLogUpsertWithWhereUniqueWithoutBillInput> = z.object({
+  where: z.lazy(() => BillLogWhereUniqueInputSchema),
+  update: z.union([ z.lazy(() => BillLogUpdateWithoutBillInputSchema),z.lazy(() => BillLogUncheckedUpdateWithoutBillInputSchema) ]),
+  create: z.union([ z.lazy(() => BillLogCreateWithoutBillInputSchema),z.lazy(() => BillLogUncheckedCreateWithoutBillInputSchema) ]),
+}).strict();
+
+export const BillLogUpdateWithWhereUniqueWithoutBillInputSchema: z.ZodType<Prisma.BillLogUpdateWithWhereUniqueWithoutBillInput> = z.object({
+  where: z.lazy(() => BillLogWhereUniqueInputSchema),
+  data: z.union([ z.lazy(() => BillLogUpdateWithoutBillInputSchema),z.lazy(() => BillLogUncheckedUpdateWithoutBillInputSchema) ]),
+}).strict();
+
+export const BillLogUpdateManyWithWhereWithoutBillInputSchema: z.ZodType<Prisma.BillLogUpdateManyWithWhereWithoutBillInput> = z.object({
+  where: z.lazy(() => BillLogScalarWhereInputSchema),
+  data: z.union([ z.lazy(() => BillLogUpdateManyMutationInputSchema),z.lazy(() => BillLogUncheckedUpdateManyWithoutBillInputSchema) ]),
+}).strict();
+
+export const BillLogScalarWhereInputSchema: z.ZodType<Prisma.BillLogScalarWhereInput> = z.object({
+  AND: z.union([ z.lazy(() => BillLogScalarWhereInputSchema),z.lazy(() => BillLogScalarWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => BillLogScalarWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => BillLogScalarWhereInputSchema),z.lazy(() => BillLogScalarWhereInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  billId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  status: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  remark: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  timestamp: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+}).strict();
+
+export const BillAttachmentUpsertWithWhereUniqueWithoutBillInputSchema: z.ZodType<Prisma.BillAttachmentUpsertWithWhereUniqueWithoutBillInput> = z.object({
+  where: z.lazy(() => BillAttachmentWhereUniqueInputSchema),
+  update: z.union([ z.lazy(() => BillAttachmentUpdateWithoutBillInputSchema),z.lazy(() => BillAttachmentUncheckedUpdateWithoutBillInputSchema) ]),
+  create: z.union([ z.lazy(() => BillAttachmentCreateWithoutBillInputSchema),z.lazy(() => BillAttachmentUncheckedCreateWithoutBillInputSchema) ]),
+}).strict();
+
+export const BillAttachmentUpdateWithWhereUniqueWithoutBillInputSchema: z.ZodType<Prisma.BillAttachmentUpdateWithWhereUniqueWithoutBillInput> = z.object({
+  where: z.lazy(() => BillAttachmentWhereUniqueInputSchema),
+  data: z.union([ z.lazy(() => BillAttachmentUpdateWithoutBillInputSchema),z.lazy(() => BillAttachmentUncheckedUpdateWithoutBillInputSchema) ]),
+}).strict();
+
+export const BillAttachmentUpdateManyWithWhereWithoutBillInputSchema: z.ZodType<Prisma.BillAttachmentUpdateManyWithWhereWithoutBillInput> = z.object({
+  where: z.lazy(() => BillAttachmentScalarWhereInputSchema),
+  data: z.union([ z.lazy(() => BillAttachmentUpdateManyMutationInputSchema),z.lazy(() => BillAttachmentUncheckedUpdateManyWithoutBillInputSchema) ]),
+}).strict();
+
+export const BillAttachmentScalarWhereInputSchema: z.ZodType<Prisma.BillAttachmentScalarWhereInput> = z.object({
+  AND: z.union([ z.lazy(() => BillAttachmentScalarWhereInputSchema),z.lazy(() => BillAttachmentScalarWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => BillAttachmentScalarWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => BillAttachmentScalarWhereInputSchema),z.lazy(() => BillAttachmentScalarWhereInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  billId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  url: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  filename: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  fileSize: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
+  mimeType: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+}).strict();
+
+export const FinanceBillCreateWithoutLogsInputSchema: z.ZodType<Prisma.FinanceBillCreateWithoutLogsInput> = z.object({
+  id: z.string().uuid().optional(),
+  billNo: z.string(),
+  totalAmount: z.number(),
+  status: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  customer: z.lazy(() => CustomerCreateNestedOneWithoutBillsInputSchema),
+  waybills: z.lazy(() => FBAOrderCreateNestedManyWithoutBillsInputSchema).optional(),
+  attachments: z.lazy(() => BillAttachmentCreateNestedManyWithoutBillInputSchema).optional()
+}).strict();
+
+export const FinanceBillUncheckedCreateWithoutLogsInputSchema: z.ZodType<Prisma.FinanceBillUncheckedCreateWithoutLogsInput> = z.object({
+  id: z.string().uuid().optional(),
+  billNo: z.string(),
+  customerId: z.string(),
+  totalAmount: z.number(),
+  status: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  waybills: z.lazy(() => FBAOrderUncheckedCreateNestedManyWithoutBillsInputSchema).optional(),
+  attachments: z.lazy(() => BillAttachmentUncheckedCreateNestedManyWithoutBillInputSchema).optional()
+}).strict();
+
+export const FinanceBillCreateOrConnectWithoutLogsInputSchema: z.ZodType<Prisma.FinanceBillCreateOrConnectWithoutLogsInput> = z.object({
+  where: z.lazy(() => FinanceBillWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => FinanceBillCreateWithoutLogsInputSchema),z.lazy(() => FinanceBillUncheckedCreateWithoutLogsInputSchema) ]),
+}).strict();
+
+export const FinanceBillUpsertWithoutLogsInputSchema: z.ZodType<Prisma.FinanceBillUpsertWithoutLogsInput> = z.object({
+  update: z.union([ z.lazy(() => FinanceBillUpdateWithoutLogsInputSchema),z.lazy(() => FinanceBillUncheckedUpdateWithoutLogsInputSchema) ]),
+  create: z.union([ z.lazy(() => FinanceBillCreateWithoutLogsInputSchema),z.lazy(() => FinanceBillUncheckedCreateWithoutLogsInputSchema) ]),
+  where: z.lazy(() => FinanceBillWhereInputSchema).optional()
+}).strict();
+
+export const FinanceBillUpdateToOneWithWhereWithoutLogsInputSchema: z.ZodType<Prisma.FinanceBillUpdateToOneWithWhereWithoutLogsInput> = z.object({
+  where: z.lazy(() => FinanceBillWhereInputSchema).optional(),
+  data: z.union([ z.lazy(() => FinanceBillUpdateWithoutLogsInputSchema),z.lazy(() => FinanceBillUncheckedUpdateWithoutLogsInputSchema) ]),
+}).strict();
+
+export const FinanceBillUpdateWithoutLogsInputSchema: z.ZodType<Prisma.FinanceBillUpdateWithoutLogsInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  billNo: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  totalAmount: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
+  status: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  customer: z.lazy(() => CustomerUpdateOneRequiredWithoutBillsNestedInputSchema).optional(),
+  waybills: z.lazy(() => FBAOrderUpdateManyWithoutBillsNestedInputSchema).optional(),
+  attachments: z.lazy(() => BillAttachmentUpdateManyWithoutBillNestedInputSchema).optional()
+}).strict();
+
+export const FinanceBillUncheckedUpdateWithoutLogsInputSchema: z.ZodType<Prisma.FinanceBillUncheckedUpdateWithoutLogsInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  billNo: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  customerId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  totalAmount: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
+  status: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  waybills: z.lazy(() => FBAOrderUncheckedUpdateManyWithoutBillsNestedInputSchema).optional(),
+  attachments: z.lazy(() => BillAttachmentUncheckedUpdateManyWithoutBillNestedInputSchema).optional()
+}).strict();
+
+export const FinanceBillCreateWithoutAttachmentsInputSchema: z.ZodType<Prisma.FinanceBillCreateWithoutAttachmentsInput> = z.object({
+  id: z.string().uuid().optional(),
+  billNo: z.string(),
+  totalAmount: z.number(),
+  status: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  customer: z.lazy(() => CustomerCreateNestedOneWithoutBillsInputSchema),
+  waybills: z.lazy(() => FBAOrderCreateNestedManyWithoutBillsInputSchema).optional(),
+  logs: z.lazy(() => BillLogCreateNestedManyWithoutBillInputSchema).optional()
+}).strict();
+
+export const FinanceBillUncheckedCreateWithoutAttachmentsInputSchema: z.ZodType<Prisma.FinanceBillUncheckedCreateWithoutAttachmentsInput> = z.object({
+  id: z.string().uuid().optional(),
+  billNo: z.string(),
+  customerId: z.string(),
+  totalAmount: z.number(),
+  status: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  waybills: z.lazy(() => FBAOrderUncheckedCreateNestedManyWithoutBillsInputSchema).optional(),
+  logs: z.lazy(() => BillLogUncheckedCreateNestedManyWithoutBillInputSchema).optional()
+}).strict();
+
+export const FinanceBillCreateOrConnectWithoutAttachmentsInputSchema: z.ZodType<Prisma.FinanceBillCreateOrConnectWithoutAttachmentsInput> = z.object({
+  where: z.lazy(() => FinanceBillWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => FinanceBillCreateWithoutAttachmentsInputSchema),z.lazy(() => FinanceBillUncheckedCreateWithoutAttachmentsInputSchema) ]),
+}).strict();
+
+export const FinanceBillUpsertWithoutAttachmentsInputSchema: z.ZodType<Prisma.FinanceBillUpsertWithoutAttachmentsInput> = z.object({
+  update: z.union([ z.lazy(() => FinanceBillUpdateWithoutAttachmentsInputSchema),z.lazy(() => FinanceBillUncheckedUpdateWithoutAttachmentsInputSchema) ]),
+  create: z.union([ z.lazy(() => FinanceBillCreateWithoutAttachmentsInputSchema),z.lazy(() => FinanceBillUncheckedCreateWithoutAttachmentsInputSchema) ]),
+  where: z.lazy(() => FinanceBillWhereInputSchema).optional()
+}).strict();
+
+export const FinanceBillUpdateToOneWithWhereWithoutAttachmentsInputSchema: z.ZodType<Prisma.FinanceBillUpdateToOneWithWhereWithoutAttachmentsInput> = z.object({
+  where: z.lazy(() => FinanceBillWhereInputSchema).optional(),
+  data: z.union([ z.lazy(() => FinanceBillUpdateWithoutAttachmentsInputSchema),z.lazy(() => FinanceBillUncheckedUpdateWithoutAttachmentsInputSchema) ]),
+}).strict();
+
+export const FinanceBillUpdateWithoutAttachmentsInputSchema: z.ZodType<Prisma.FinanceBillUpdateWithoutAttachmentsInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  billNo: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  totalAmount: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
+  status: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  customer: z.lazy(() => CustomerUpdateOneRequiredWithoutBillsNestedInputSchema).optional(),
+  waybills: z.lazy(() => FBAOrderUpdateManyWithoutBillsNestedInputSchema).optional(),
+  logs: z.lazy(() => BillLogUpdateManyWithoutBillNestedInputSchema).optional()
+}).strict();
+
+export const FinanceBillUncheckedUpdateWithoutAttachmentsInputSchema: z.ZodType<Prisma.FinanceBillUncheckedUpdateWithoutAttachmentsInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  billNo: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  customerId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  totalAmount: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
+  status: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  waybills: z.lazy(() => FBAOrderUncheckedUpdateManyWithoutBillsNestedInputSchema).optional(),
+  logs: z.lazy(() => BillLogUncheckedUpdateManyWithoutBillNestedInputSchema).optional()
 }).strict();
 
 export const UserCreateManyTenantInputSchema: z.ZodType<Prisma.UserCreateManyTenantInput> = z.object({
@@ -17105,7 +18719,8 @@ export const FBAOrderUpdateWithoutTenantInputSchema: z.ZodType<Prisma.FBAOrderUp
   waybillRule: z.lazy(() => WaybillRuleUpdateOneWithoutFbaOrdersNestedInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUpdateManyWithoutShipmentNestedInputSchema).optional(),
   carrier: z.lazy(() => CarrierUpdateOneWithoutFbaOrdersNestedInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUpdateManyWithoutWaybillNestedInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUpdateManyWithoutWaybillNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUpdateManyWithoutWaybillsNestedInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedUpdateWithoutTenantInputSchema: z.ZodType<Prisma.FBAOrderUncheckedUpdateWithoutTenantInput> = z.object({
@@ -17173,7 +18788,8 @@ export const FBAOrderUncheckedUpdateWithoutTenantInputSchema: z.ZodType<Prisma.F
   carrierId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   boxes: z.lazy(() => BoxUncheckedUpdateManyWithoutFbaOrderNestedInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUncheckedUpdateManyWithoutShipmentNestedInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUncheckedUpdateManyWithoutWaybillNestedInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUncheckedUpdateManyWithoutWaybillNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedUpdateManyWithoutWaybillsNestedInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedUpdateManyWithoutTenantInputSchema: z.ZodType<Prisma.FBAOrderUncheckedUpdateManyWithoutTenantInput> = z.object({
@@ -17338,7 +18954,8 @@ export const CustomerUpdateWithoutTenantInputSchema: z.ZodType<Prisma.CustomerUp
   fbaOrders: z.lazy(() => FBAOrderUpdateManyWithoutSenderNestedInputSchema).optional(),
   orders: z.lazy(() => FBAOrderUpdateManyWithoutCustomerNestedInputSchema).optional(),
   positions: z.lazy(() => PositionUpdateManyWithoutCustomerNestedInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogUpdateManyWithoutCustomerNestedInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogUpdateManyWithoutCustomerNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUpdateManyWithoutCustomerNestedInputSchema).optional()
 }).strict();
 
 export const CustomerUncheckedUpdateWithoutTenantInputSchema: z.ZodType<Prisma.CustomerUncheckedUpdateWithoutTenantInput> = z.object({
@@ -17360,7 +18977,8 @@ export const CustomerUncheckedUpdateWithoutTenantInputSchema: z.ZodType<Prisma.C
   fbaOrders: z.lazy(() => FBAOrderUncheckedUpdateManyWithoutSenderNestedInputSchema).optional(),
   orders: z.lazy(() => FBAOrderUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional(),
   positions: z.lazy(() => PositionUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional()
 }).strict();
 
 export const CustomerUncheckedUpdateManyWithoutTenantInputSchema: z.ZodType<Prisma.CustomerUncheckedUpdateManyWithoutTenantInput> = z.object({
@@ -17575,7 +19193,8 @@ export const FBAOrderUpdateWithoutUserInputSchema: z.ZodType<Prisma.FBAOrderUpda
   waybillRule: z.lazy(() => WaybillRuleUpdateOneWithoutFbaOrdersNestedInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUpdateManyWithoutShipmentNestedInputSchema).optional(),
   carrier: z.lazy(() => CarrierUpdateOneWithoutFbaOrdersNestedInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUpdateManyWithoutWaybillNestedInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUpdateManyWithoutWaybillNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUpdateManyWithoutWaybillsNestedInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedUpdateWithoutUserInputSchema: z.ZodType<Prisma.FBAOrderUncheckedUpdateWithoutUserInput> = z.object({
@@ -17643,7 +19262,8 @@ export const FBAOrderUncheckedUpdateWithoutUserInputSchema: z.ZodType<Prisma.FBA
   carrierId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   boxes: z.lazy(() => BoxUncheckedUpdateManyWithoutFbaOrderNestedInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUncheckedUpdateManyWithoutShipmentNestedInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUncheckedUpdateManyWithoutWaybillNestedInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUncheckedUpdateManyWithoutWaybillNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedUpdateManyWithoutWaybillsNestedInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedUpdateManyWithoutUserInputSchema: z.ZodType<Prisma.FBAOrderUncheckedUpdateManyWithoutUserInput> = z.object({
@@ -17808,7 +19428,8 @@ export const CustomerUpdateWithoutFinanceContactInputSchema: z.ZodType<Prisma.Cu
   fbaOrders: z.lazy(() => FBAOrderUpdateManyWithoutSenderNestedInputSchema).optional(),
   orders: z.lazy(() => FBAOrderUpdateManyWithoutCustomerNestedInputSchema).optional(),
   positions: z.lazy(() => PositionUpdateManyWithoutCustomerNestedInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogUpdateManyWithoutCustomerNestedInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogUpdateManyWithoutCustomerNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUpdateManyWithoutCustomerNestedInputSchema).optional()
 }).strict();
 
 export const CustomerUncheckedUpdateWithoutFinanceContactInputSchema: z.ZodType<Prisma.CustomerUncheckedUpdateWithoutFinanceContactInput> = z.object({
@@ -17830,7 +19451,8 @@ export const CustomerUncheckedUpdateWithoutFinanceContactInputSchema: z.ZodType<
   fbaOrders: z.lazy(() => FBAOrderUncheckedUpdateManyWithoutSenderNestedInputSchema).optional(),
   orders: z.lazy(() => FBAOrderUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional(),
   positions: z.lazy(() => PositionUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional(),
-  loginLogs: z.lazy(() => LoginLogUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional()
+  loginLogs: z.lazy(() => LoginLogUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedUpdateManyWithoutCustomerNestedInputSchema).optional()
 }).strict();
 
 export const CustomerUncheckedUpdateManyWithoutFinanceContactInputSchema: z.ZodType<Prisma.CustomerUncheckedUpdateManyWithoutFinanceContactInput> = z.object({
@@ -17995,6 +19617,15 @@ export const LoginLogCreateManyCustomerInputSchema: z.ZodType<Prisma.LoginLogCre
   loginAt: z.coerce.date().optional()
 }).strict();
 
+export const FinanceBillCreateManyCustomerInputSchema: z.ZodType<Prisma.FinanceBillCreateManyCustomerInput> = z.object({
+  id: z.string().uuid().optional(),
+  billNo: z.string(),
+  totalAmount: z.number(),
+  status: z.string(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional()
+}).strict();
+
 export const FBAOrderUpdateWithoutSenderInputSchema: z.ZodType<Prisma.FBAOrderUpdateWithoutSenderInput> = z.object({
   id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   freightCost: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
@@ -18060,7 +19691,8 @@ export const FBAOrderUpdateWithoutSenderInputSchema: z.ZodType<Prisma.FBAOrderUp
   waybillRule: z.lazy(() => WaybillRuleUpdateOneWithoutFbaOrdersNestedInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUpdateManyWithoutShipmentNestedInputSchema).optional(),
   carrier: z.lazy(() => CarrierUpdateOneWithoutFbaOrdersNestedInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUpdateManyWithoutWaybillNestedInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUpdateManyWithoutWaybillNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUpdateManyWithoutWaybillsNestedInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedUpdateWithoutSenderInputSchema: z.ZodType<Prisma.FBAOrderUncheckedUpdateWithoutSenderInput> = z.object({
@@ -18128,7 +19760,8 @@ export const FBAOrderUncheckedUpdateWithoutSenderInputSchema: z.ZodType<Prisma.F
   carrierId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   boxes: z.lazy(() => BoxUncheckedUpdateManyWithoutFbaOrderNestedInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUncheckedUpdateManyWithoutShipmentNestedInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUncheckedUpdateManyWithoutWaybillNestedInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUncheckedUpdateManyWithoutWaybillNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedUpdateManyWithoutWaybillsNestedInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedUpdateManyWithoutSenderInputSchema: z.ZodType<Prisma.FBAOrderUncheckedUpdateManyWithoutSenderInput> = z.object({
@@ -18261,7 +19894,8 @@ export const FBAOrderUpdateWithoutCustomerInputSchema: z.ZodType<Prisma.FBAOrder
   waybillRule: z.lazy(() => WaybillRuleUpdateOneWithoutFbaOrdersNestedInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUpdateManyWithoutShipmentNestedInputSchema).optional(),
   carrier: z.lazy(() => CarrierUpdateOneWithoutFbaOrdersNestedInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUpdateManyWithoutWaybillNestedInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUpdateManyWithoutWaybillNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUpdateManyWithoutWaybillsNestedInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedUpdateWithoutCustomerInputSchema: z.ZodType<Prisma.FBAOrderUncheckedUpdateWithoutCustomerInput> = z.object({
@@ -18329,7 +19963,8 @@ export const FBAOrderUncheckedUpdateWithoutCustomerInputSchema: z.ZodType<Prisma
   carrierId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   boxes: z.lazy(() => BoxUncheckedUpdateManyWithoutFbaOrderNestedInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUncheckedUpdateManyWithoutShipmentNestedInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUncheckedUpdateManyWithoutWaybillNestedInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUncheckedUpdateManyWithoutWaybillNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedUpdateManyWithoutWaybillsNestedInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedUpdateManyWithoutCustomerInputSchema: z.ZodType<Prisma.FBAOrderUncheckedUpdateManyWithoutCustomerInput> = z.object({
@@ -18439,6 +20074,39 @@ export const LoginLogUncheckedUpdateManyWithoutCustomerInputSchema: z.ZodType<Pr
   device: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   userAgent: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   loginAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FinanceBillUpdateWithoutCustomerInputSchema: z.ZodType<Prisma.FinanceBillUpdateWithoutCustomerInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  billNo: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  totalAmount: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
+  status: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  waybills: z.lazy(() => FBAOrderUpdateManyWithoutBillsNestedInputSchema).optional(),
+  logs: z.lazy(() => BillLogUpdateManyWithoutBillNestedInputSchema).optional(),
+  attachments: z.lazy(() => BillAttachmentUpdateManyWithoutBillNestedInputSchema).optional()
+}).strict();
+
+export const FinanceBillUncheckedUpdateWithoutCustomerInputSchema: z.ZodType<Prisma.FinanceBillUncheckedUpdateWithoutCustomerInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  billNo: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  totalAmount: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
+  status: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  waybills: z.lazy(() => FBAOrderUncheckedUpdateManyWithoutBillsNestedInputSchema).optional(),
+  logs: z.lazy(() => BillLogUncheckedUpdateManyWithoutBillNestedInputSchema).optional(),
+  attachments: z.lazy(() => BillAttachmentUncheckedUpdateManyWithoutBillNestedInputSchema).optional()
+}).strict();
+
+export const FinanceBillUncheckedUpdateManyWithoutCustomerInputSchema: z.ZodType<Prisma.FinanceBillUncheckedUpdateManyWithoutCustomerInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  billNo: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  totalAmount: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
+  status: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
 
 export const BoxCreateManyFbaOrderInputSchema: z.ZodType<Prisma.BoxCreateManyFbaOrderInput> = z.object({
@@ -18595,6 +20263,40 @@ export const AttachmentUncheckedUpdateManyWithoutWaybillInputSchema: z.ZodType<P
   name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   path: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   type: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FinanceBillUpdateWithoutWaybillsInputSchema: z.ZodType<Prisma.FinanceBillUpdateWithoutWaybillsInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  billNo: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  totalAmount: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
+  status: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  customer: z.lazy(() => CustomerUpdateOneRequiredWithoutBillsNestedInputSchema).optional(),
+  logs: z.lazy(() => BillLogUpdateManyWithoutBillNestedInputSchema).optional(),
+  attachments: z.lazy(() => BillAttachmentUpdateManyWithoutBillNestedInputSchema).optional()
+}).strict();
+
+export const FinanceBillUncheckedUpdateWithoutWaybillsInputSchema: z.ZodType<Prisma.FinanceBillUncheckedUpdateWithoutWaybillsInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  billNo: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  customerId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  totalAmount: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
+  status: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  logs: z.lazy(() => BillLogUncheckedUpdateManyWithoutBillNestedInputSchema).optional(),
+  attachments: z.lazy(() => BillAttachmentUncheckedUpdateManyWithoutBillNestedInputSchema).optional()
+}).strict();
+
+export const FinanceBillUncheckedUpdateManyWithoutWaybillsInputSchema: z.ZodType<Prisma.FinanceBillUncheckedUpdateManyWithoutWaybillsInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  billNo: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  customerId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  totalAmount: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
+  status: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
 
 export const ChannelCreateManyCarrierInputSchema: z.ZodType<Prisma.ChannelCreateManyCarrierInput> = z.object({
@@ -19079,7 +20781,8 @@ export const FBAOrderUpdateWithoutCarrierInputSchema: z.ZodType<Prisma.FBAOrderU
   boxes: z.lazy(() => BoxUpdateManyWithoutFbaOrderNestedInputSchema).optional(),
   waybillRule: z.lazy(() => WaybillRuleUpdateOneWithoutFbaOrdersNestedInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUpdateManyWithoutShipmentNestedInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUpdateManyWithoutWaybillNestedInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUpdateManyWithoutWaybillNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUpdateManyWithoutWaybillsNestedInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedUpdateWithoutCarrierInputSchema: z.ZodType<Prisma.FBAOrderUncheckedUpdateWithoutCarrierInput> = z.object({
@@ -19147,7 +20850,8 @@ export const FBAOrderUncheckedUpdateWithoutCarrierInputSchema: z.ZodType<Prisma.
   errors: z.union([ z.lazy(() => FBAOrderUpdateerrorsInputSchema),z.string().array() ]).optional(),
   boxes: z.lazy(() => BoxUncheckedUpdateManyWithoutFbaOrderNestedInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUncheckedUpdateManyWithoutShipmentNestedInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUncheckedUpdateManyWithoutWaybillNestedInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUncheckedUpdateManyWithoutWaybillNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedUpdateManyWithoutWaybillsNestedInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedUpdateManyWithoutCarrierInputSchema: z.ZodType<Prisma.FBAOrderUncheckedUpdateManyWithoutCarrierInput> = z.object({
@@ -19417,7 +21121,8 @@ export const FBAOrderUpdateWithoutChannelInputSchema: z.ZodType<Prisma.FBAOrderU
   waybillRule: z.lazy(() => WaybillRuleUpdateOneWithoutFbaOrdersNestedInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUpdateManyWithoutShipmentNestedInputSchema).optional(),
   carrier: z.lazy(() => CarrierUpdateOneWithoutFbaOrdersNestedInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUpdateManyWithoutWaybillNestedInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUpdateManyWithoutWaybillNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUpdateManyWithoutWaybillsNestedInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedUpdateWithoutChannelInputSchema: z.ZodType<Prisma.FBAOrderUncheckedUpdateWithoutChannelInput> = z.object({
@@ -19485,7 +21190,8 @@ export const FBAOrderUncheckedUpdateWithoutChannelInputSchema: z.ZodType<Prisma.
   carrierId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   boxes: z.lazy(() => BoxUncheckedUpdateManyWithoutFbaOrderNestedInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUncheckedUpdateManyWithoutShipmentNestedInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUncheckedUpdateManyWithoutWaybillNestedInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUncheckedUpdateManyWithoutWaybillNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedUpdateManyWithoutWaybillsNestedInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedUpdateManyWithoutChannelInputSchema: z.ZodType<Prisma.FBAOrderUncheckedUpdateManyWithoutChannelInput> = z.object({
@@ -19735,7 +21441,8 @@ export const FBAOrderUpdateWithoutWaybillRuleInputSchema: z.ZodType<Prisma.FBAOr
   boxes: z.lazy(() => BoxUpdateManyWithoutFbaOrderNestedInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUpdateManyWithoutShipmentNestedInputSchema).optional(),
   carrier: z.lazy(() => CarrierUpdateOneWithoutFbaOrdersNestedInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUpdateManyWithoutWaybillNestedInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUpdateManyWithoutWaybillNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUpdateManyWithoutWaybillsNestedInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedUpdateWithoutWaybillRuleInputSchema: z.ZodType<Prisma.FBAOrderUncheckedUpdateWithoutWaybillRuleInput> = z.object({
@@ -19803,7 +21510,8 @@ export const FBAOrderUncheckedUpdateWithoutWaybillRuleInputSchema: z.ZodType<Pri
   carrierId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   boxes: z.lazy(() => BoxUncheckedUpdateManyWithoutFbaOrderNestedInputSchema).optional(),
   logs: z.lazy(() => ShipmentLogUncheckedUpdateManyWithoutShipmentNestedInputSchema).optional(),
-  attachments: z.lazy(() => AttachmentUncheckedUpdateManyWithoutWaybillNestedInputSchema).optional()
+  attachments: z.lazy(() => AttachmentUncheckedUpdateManyWithoutWaybillNestedInputSchema).optional(),
+  bills: z.lazy(() => FinanceBillUncheckedUpdateManyWithoutWaybillsNestedInputSchema).optional()
 }).strict();
 
 export const FBAOrderUncheckedUpdateManyWithoutWaybillRuleInputSchema: z.ZodType<Prisma.FBAOrderUncheckedUpdateManyWithoutWaybillRuleInput> = z.object({
@@ -19972,6 +21680,274 @@ export const PositionMemberUncheckedUpdateManyWithoutPositionInputSchema: z.ZodT
   name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   phone: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   email: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const BillLogCreateManyBillInputSchema: z.ZodType<Prisma.BillLogCreateManyBillInput> = z.object({
+  id: z.string().uuid().optional(),
+  status: z.string(),
+  remark: z.string().optional().nullable(),
+  timestamp: z.coerce.date().optional()
+}).strict();
+
+export const BillAttachmentCreateManyBillInputSchema: z.ZodType<Prisma.BillAttachmentCreateManyBillInput> = z.object({
+  id: z.string().uuid().optional(),
+  url: z.string(),
+  filename: z.string(),
+  fileSize: z.number().int().optional().nullable(),
+  mimeType: z.string().optional().nullable(),
+  createdAt: z.coerce.date().optional()
+}).strict();
+
+export const FBAOrderUpdateWithoutBillsInputSchema: z.ZodType<Prisma.FBAOrderUpdateWithoutBillsInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  freightCost: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  totalCost: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  recipient: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  country: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  quantity: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  weight: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  volume: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  volumetricWeight: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  chargeWeight: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  cargo: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  status: z.union([ z.lazy(() => OrderStatusSchema),z.lazy(() => EnumOrderStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  type: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  warehouse: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  length: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  width: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  height: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  hasBattery: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  hasMagnetic: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  hasDangerous: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  hasLiquid: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  hasPowder: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  clientCode: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  company: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  phone: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  email: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  store: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  ref1: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  vat: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  ioss: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  eori: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  currency: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  category: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  productName: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  attrs: z.union([ z.lazy(() => FBAOrderUpdateattrsInputSchema),z.string().array() ]).optional(),
+  notes: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  insurance: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  address1: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  address2: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  address3: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  addressDetail: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  city: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  state: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  postalCode: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  declaredValue: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  declaredQuantity: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  senderName: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  extraFee: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  waybillNumber: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  billingPrecision: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isCOD: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  allowCustomerCancel: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  trackingNumber: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  labelUploaded: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  errors: z.union([ z.lazy(() => FBAOrderUpdateerrorsInputSchema),z.string().array() ]).optional(),
+  channel: z.lazy(() => ChannelUpdateOneRequiredWithoutFbaOrdersNestedInputSchema).optional(),
+  tenant: z.lazy(() => TenantUpdateOneRequiredWithoutFbaOrdersNestedInputSchema).optional(),
+  customer: z.lazy(() => CustomerUpdateOneRequiredWithoutOrdersNestedInputSchema).optional(),
+  user: z.lazy(() => UserUpdateOneRequiredWithoutFbaOrdersNestedInputSchema).optional(),
+  sender: z.lazy(() => CustomerUpdateOneWithoutFbaOrdersNestedInputSchema).optional(),
+  boxes: z.lazy(() => BoxUpdateManyWithoutFbaOrderNestedInputSchema).optional(),
+  waybillRule: z.lazy(() => WaybillRuleUpdateOneWithoutFbaOrdersNestedInputSchema).optional(),
+  logs: z.lazy(() => ShipmentLogUpdateManyWithoutShipmentNestedInputSchema).optional(),
+  carrier: z.lazy(() => CarrierUpdateOneWithoutFbaOrdersNestedInputSchema).optional(),
+  attachments: z.lazy(() => AttachmentUpdateManyWithoutWaybillNestedInputSchema).optional()
+}).strict();
+
+export const FBAOrderUncheckedUpdateWithoutBillsInputSchema: z.ZodType<Prisma.FBAOrderUncheckedUpdateWithoutBillsInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  channelId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  freightCost: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  totalCost: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  recipient: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  country: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  quantity: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  weight: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  volume: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  volumetricWeight: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  chargeWeight: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  cargo: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  status: z.union([ z.lazy(() => OrderStatusSchema),z.lazy(() => EnumOrderStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  tenantId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  customerId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  type: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  warehouse: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  length: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  width: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  height: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  hasBattery: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  hasMagnetic: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  hasDangerous: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  hasLiquid: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  hasPowder: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  clientCode: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  company: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  phone: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  email: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  store: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  ref1: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  vat: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  ioss: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  eori: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  currency: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  category: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  productName: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  attrs: z.union([ z.lazy(() => FBAOrderUpdateattrsInputSchema),z.string().array() ]).optional(),
+  notes: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  insurance: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  address1: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  address2: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  address3: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  addressDetail: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  city: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  state: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  postalCode: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  declaredValue: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  declaredQuantity: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  senderId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  senderName: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  extraFee: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  waybillRuleId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  waybillNumber: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  billingPrecision: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isCOD: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  allowCustomerCancel: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  trackingNumber: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  labelUploaded: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  errors: z.union([ z.lazy(() => FBAOrderUpdateerrorsInputSchema),z.string().array() ]).optional(),
+  carrierId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  boxes: z.lazy(() => BoxUncheckedUpdateManyWithoutFbaOrderNestedInputSchema).optional(),
+  logs: z.lazy(() => ShipmentLogUncheckedUpdateManyWithoutShipmentNestedInputSchema).optional(),
+  attachments: z.lazy(() => AttachmentUncheckedUpdateManyWithoutWaybillNestedInputSchema).optional()
+}).strict();
+
+export const FBAOrderUncheckedUpdateManyWithoutBillsInputSchema: z.ZodType<Prisma.FBAOrderUncheckedUpdateManyWithoutBillsInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  channelId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  freightCost: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  totalCost: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  recipient: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  country: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  quantity: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
+  weight: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  volume: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  volumetricWeight: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  chargeWeight: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  cargo: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  status: z.union([ z.lazy(() => OrderStatusSchema),z.lazy(() => EnumOrderStatusFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  tenantId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  customerId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  type: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  warehouse: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  length: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  width: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  height: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  hasBattery: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  hasMagnetic: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  hasDangerous: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  hasLiquid: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  hasPowder: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  clientCode: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  company: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  phone: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  email: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  store: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  ref1: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  vat: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  ioss: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  eori: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  currency: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  category: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  productName: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  attrs: z.union([ z.lazy(() => FBAOrderUpdateattrsInputSchema),z.string().array() ]).optional(),
+  notes: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  insurance: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  address1: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  address2: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  address3: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  addressDetail: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  city: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  state: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  postalCode: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  declaredValue: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  declaredQuantity: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  senderId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  senderName: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  extraFee: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  waybillRuleId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  waybillNumber: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  billingPrecision: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  isCOD: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  allowCustomerCancel: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  trackingNumber: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  labelUploaded: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
+  errors: z.union([ z.lazy(() => FBAOrderUpdateerrorsInputSchema),z.string().array() ]).optional(),
+  carrierId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+}).strict();
+
+export const BillLogUpdateWithoutBillInputSchema: z.ZodType<Prisma.BillLogUpdateWithoutBillInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  status: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  remark: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  timestamp: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const BillLogUncheckedUpdateWithoutBillInputSchema: z.ZodType<Prisma.BillLogUncheckedUpdateWithoutBillInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  status: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  remark: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  timestamp: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const BillLogUncheckedUpdateManyWithoutBillInputSchema: z.ZodType<Prisma.BillLogUncheckedUpdateManyWithoutBillInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  status: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  remark: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  timestamp: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const BillAttachmentUpdateWithoutBillInputSchema: z.ZodType<Prisma.BillAttachmentUpdateWithoutBillInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  url: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  filename: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  fileSize: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  mimeType: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const BillAttachmentUncheckedUpdateWithoutBillInputSchema: z.ZodType<Prisma.BillAttachmentUncheckedUpdateWithoutBillInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  url: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  filename: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  fileSize: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  mimeType: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const BillAttachmentUncheckedUpdateManyWithoutBillInputSchema: z.ZodType<Prisma.BillAttachmentUncheckedUpdateManyWithoutBillInput> = z.object({
+  id: z.union([ z.string().uuid(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  url: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  filename: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  fileSize: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  mimeType: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
 
@@ -21219,6 +23195,192 @@ export const LoginLogFindUniqueOrThrowArgsSchema: z.ZodType<Prisma.LoginLogFindU
   where: LoginLogWhereUniqueInputSchema,
 }).strict() ;
 
+export const FinanceBillFindFirstArgsSchema: z.ZodType<Prisma.FinanceBillFindFirstArgs> = z.object({
+  select: FinanceBillSelectSchema.optional(),
+  include: FinanceBillIncludeSchema.optional(),
+  where: FinanceBillWhereInputSchema.optional(),
+  orderBy: z.union([ FinanceBillOrderByWithRelationInputSchema.array(),FinanceBillOrderByWithRelationInputSchema ]).optional(),
+  cursor: FinanceBillWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ FinanceBillScalarFieldEnumSchema,FinanceBillScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const FinanceBillFindFirstOrThrowArgsSchema: z.ZodType<Prisma.FinanceBillFindFirstOrThrowArgs> = z.object({
+  select: FinanceBillSelectSchema.optional(),
+  include: FinanceBillIncludeSchema.optional(),
+  where: FinanceBillWhereInputSchema.optional(),
+  orderBy: z.union([ FinanceBillOrderByWithRelationInputSchema.array(),FinanceBillOrderByWithRelationInputSchema ]).optional(),
+  cursor: FinanceBillWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ FinanceBillScalarFieldEnumSchema,FinanceBillScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const FinanceBillFindManyArgsSchema: z.ZodType<Prisma.FinanceBillFindManyArgs> = z.object({
+  select: FinanceBillSelectSchema.optional(),
+  include: FinanceBillIncludeSchema.optional(),
+  where: FinanceBillWhereInputSchema.optional(),
+  orderBy: z.union([ FinanceBillOrderByWithRelationInputSchema.array(),FinanceBillOrderByWithRelationInputSchema ]).optional(),
+  cursor: FinanceBillWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ FinanceBillScalarFieldEnumSchema,FinanceBillScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const FinanceBillAggregateArgsSchema: z.ZodType<Prisma.FinanceBillAggregateArgs> = z.object({
+  where: FinanceBillWhereInputSchema.optional(),
+  orderBy: z.union([ FinanceBillOrderByWithRelationInputSchema.array(),FinanceBillOrderByWithRelationInputSchema ]).optional(),
+  cursor: FinanceBillWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+}).strict() ;
+
+export const FinanceBillGroupByArgsSchema: z.ZodType<Prisma.FinanceBillGroupByArgs> = z.object({
+  where: FinanceBillWhereInputSchema.optional(),
+  orderBy: z.union([ FinanceBillOrderByWithAggregationInputSchema.array(),FinanceBillOrderByWithAggregationInputSchema ]).optional(),
+  by: FinanceBillScalarFieldEnumSchema.array(),
+  having: FinanceBillScalarWhereWithAggregatesInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+}).strict() ;
+
+export const FinanceBillFindUniqueArgsSchema: z.ZodType<Prisma.FinanceBillFindUniqueArgs> = z.object({
+  select: FinanceBillSelectSchema.optional(),
+  include: FinanceBillIncludeSchema.optional(),
+  where: FinanceBillWhereUniqueInputSchema,
+}).strict() ;
+
+export const FinanceBillFindUniqueOrThrowArgsSchema: z.ZodType<Prisma.FinanceBillFindUniqueOrThrowArgs> = z.object({
+  select: FinanceBillSelectSchema.optional(),
+  include: FinanceBillIncludeSchema.optional(),
+  where: FinanceBillWhereUniqueInputSchema,
+}).strict() ;
+
+export const BillLogFindFirstArgsSchema: z.ZodType<Prisma.BillLogFindFirstArgs> = z.object({
+  select: BillLogSelectSchema.optional(),
+  include: BillLogIncludeSchema.optional(),
+  where: BillLogWhereInputSchema.optional(),
+  orderBy: z.union([ BillLogOrderByWithRelationInputSchema.array(),BillLogOrderByWithRelationInputSchema ]).optional(),
+  cursor: BillLogWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ BillLogScalarFieldEnumSchema,BillLogScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const BillLogFindFirstOrThrowArgsSchema: z.ZodType<Prisma.BillLogFindFirstOrThrowArgs> = z.object({
+  select: BillLogSelectSchema.optional(),
+  include: BillLogIncludeSchema.optional(),
+  where: BillLogWhereInputSchema.optional(),
+  orderBy: z.union([ BillLogOrderByWithRelationInputSchema.array(),BillLogOrderByWithRelationInputSchema ]).optional(),
+  cursor: BillLogWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ BillLogScalarFieldEnumSchema,BillLogScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const BillLogFindManyArgsSchema: z.ZodType<Prisma.BillLogFindManyArgs> = z.object({
+  select: BillLogSelectSchema.optional(),
+  include: BillLogIncludeSchema.optional(),
+  where: BillLogWhereInputSchema.optional(),
+  orderBy: z.union([ BillLogOrderByWithRelationInputSchema.array(),BillLogOrderByWithRelationInputSchema ]).optional(),
+  cursor: BillLogWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ BillLogScalarFieldEnumSchema,BillLogScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const BillLogAggregateArgsSchema: z.ZodType<Prisma.BillLogAggregateArgs> = z.object({
+  where: BillLogWhereInputSchema.optional(),
+  orderBy: z.union([ BillLogOrderByWithRelationInputSchema.array(),BillLogOrderByWithRelationInputSchema ]).optional(),
+  cursor: BillLogWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+}).strict() ;
+
+export const BillLogGroupByArgsSchema: z.ZodType<Prisma.BillLogGroupByArgs> = z.object({
+  where: BillLogWhereInputSchema.optional(),
+  orderBy: z.union([ BillLogOrderByWithAggregationInputSchema.array(),BillLogOrderByWithAggregationInputSchema ]).optional(),
+  by: BillLogScalarFieldEnumSchema.array(),
+  having: BillLogScalarWhereWithAggregatesInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+}).strict() ;
+
+export const BillLogFindUniqueArgsSchema: z.ZodType<Prisma.BillLogFindUniqueArgs> = z.object({
+  select: BillLogSelectSchema.optional(),
+  include: BillLogIncludeSchema.optional(),
+  where: BillLogWhereUniqueInputSchema,
+}).strict() ;
+
+export const BillLogFindUniqueOrThrowArgsSchema: z.ZodType<Prisma.BillLogFindUniqueOrThrowArgs> = z.object({
+  select: BillLogSelectSchema.optional(),
+  include: BillLogIncludeSchema.optional(),
+  where: BillLogWhereUniqueInputSchema,
+}).strict() ;
+
+export const BillAttachmentFindFirstArgsSchema: z.ZodType<Prisma.BillAttachmentFindFirstArgs> = z.object({
+  select: BillAttachmentSelectSchema.optional(),
+  include: BillAttachmentIncludeSchema.optional(),
+  where: BillAttachmentWhereInputSchema.optional(),
+  orderBy: z.union([ BillAttachmentOrderByWithRelationInputSchema.array(),BillAttachmentOrderByWithRelationInputSchema ]).optional(),
+  cursor: BillAttachmentWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ BillAttachmentScalarFieldEnumSchema,BillAttachmentScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const BillAttachmentFindFirstOrThrowArgsSchema: z.ZodType<Prisma.BillAttachmentFindFirstOrThrowArgs> = z.object({
+  select: BillAttachmentSelectSchema.optional(),
+  include: BillAttachmentIncludeSchema.optional(),
+  where: BillAttachmentWhereInputSchema.optional(),
+  orderBy: z.union([ BillAttachmentOrderByWithRelationInputSchema.array(),BillAttachmentOrderByWithRelationInputSchema ]).optional(),
+  cursor: BillAttachmentWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ BillAttachmentScalarFieldEnumSchema,BillAttachmentScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const BillAttachmentFindManyArgsSchema: z.ZodType<Prisma.BillAttachmentFindManyArgs> = z.object({
+  select: BillAttachmentSelectSchema.optional(),
+  include: BillAttachmentIncludeSchema.optional(),
+  where: BillAttachmentWhereInputSchema.optional(),
+  orderBy: z.union([ BillAttachmentOrderByWithRelationInputSchema.array(),BillAttachmentOrderByWithRelationInputSchema ]).optional(),
+  cursor: BillAttachmentWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ BillAttachmentScalarFieldEnumSchema,BillAttachmentScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const BillAttachmentAggregateArgsSchema: z.ZodType<Prisma.BillAttachmentAggregateArgs> = z.object({
+  where: BillAttachmentWhereInputSchema.optional(),
+  orderBy: z.union([ BillAttachmentOrderByWithRelationInputSchema.array(),BillAttachmentOrderByWithRelationInputSchema ]).optional(),
+  cursor: BillAttachmentWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+}).strict() ;
+
+export const BillAttachmentGroupByArgsSchema: z.ZodType<Prisma.BillAttachmentGroupByArgs> = z.object({
+  where: BillAttachmentWhereInputSchema.optional(),
+  orderBy: z.union([ BillAttachmentOrderByWithAggregationInputSchema.array(),BillAttachmentOrderByWithAggregationInputSchema ]).optional(),
+  by: BillAttachmentScalarFieldEnumSchema.array(),
+  having: BillAttachmentScalarWhereWithAggregatesInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+}).strict() ;
+
+export const BillAttachmentFindUniqueArgsSchema: z.ZodType<Prisma.BillAttachmentFindUniqueArgs> = z.object({
+  select: BillAttachmentSelectSchema.optional(),
+  include: BillAttachmentIncludeSchema.optional(),
+  where: BillAttachmentWhereUniqueInputSchema,
+}).strict() ;
+
+export const BillAttachmentFindUniqueOrThrowArgsSchema: z.ZodType<Prisma.BillAttachmentFindUniqueOrThrowArgs> = z.object({
+  select: BillAttachmentSelectSchema.optional(),
+  include: BillAttachmentIncludeSchema.optional(),
+  where: BillAttachmentWhereUniqueInputSchema,
+}).strict() ;
+
 export const TenantCreateArgsSchema: z.ZodType<Prisma.TenantCreateArgs> = z.object({
   select: TenantSelectSchema.optional(),
   include: TenantIncludeSchema.optional(),
@@ -22296,5 +24458,167 @@ export const LoginLogUpdateManyAndReturnArgsSchema: z.ZodType<Prisma.LoginLogUpd
 
 export const LoginLogDeleteManyArgsSchema: z.ZodType<Prisma.LoginLogDeleteManyArgs> = z.object({
   where: LoginLogWhereInputSchema.optional(),
+  limit: z.number().optional(),
+}).strict() ;
+
+export const FinanceBillCreateArgsSchema: z.ZodType<Prisma.FinanceBillCreateArgs> = z.object({
+  select: FinanceBillSelectSchema.optional(),
+  include: FinanceBillIncludeSchema.optional(),
+  data: z.union([ FinanceBillCreateInputSchema,FinanceBillUncheckedCreateInputSchema ]),
+}).strict() ;
+
+export const FinanceBillUpsertArgsSchema: z.ZodType<Prisma.FinanceBillUpsertArgs> = z.object({
+  select: FinanceBillSelectSchema.optional(),
+  include: FinanceBillIncludeSchema.optional(),
+  where: FinanceBillWhereUniqueInputSchema,
+  create: z.union([ FinanceBillCreateInputSchema,FinanceBillUncheckedCreateInputSchema ]),
+  update: z.union([ FinanceBillUpdateInputSchema,FinanceBillUncheckedUpdateInputSchema ]),
+}).strict() ;
+
+export const FinanceBillCreateManyArgsSchema: z.ZodType<Prisma.FinanceBillCreateManyArgs> = z.object({
+  data: z.union([ FinanceBillCreateManyInputSchema,FinanceBillCreateManyInputSchema.array() ]),
+  skipDuplicates: z.boolean().optional(),
+}).strict() ;
+
+export const FinanceBillCreateManyAndReturnArgsSchema: z.ZodType<Prisma.FinanceBillCreateManyAndReturnArgs> = z.object({
+  data: z.union([ FinanceBillCreateManyInputSchema,FinanceBillCreateManyInputSchema.array() ]),
+  skipDuplicates: z.boolean().optional(),
+}).strict() ;
+
+export const FinanceBillDeleteArgsSchema: z.ZodType<Prisma.FinanceBillDeleteArgs> = z.object({
+  select: FinanceBillSelectSchema.optional(),
+  include: FinanceBillIncludeSchema.optional(),
+  where: FinanceBillWhereUniqueInputSchema,
+}).strict() ;
+
+export const FinanceBillUpdateArgsSchema: z.ZodType<Prisma.FinanceBillUpdateArgs> = z.object({
+  select: FinanceBillSelectSchema.optional(),
+  include: FinanceBillIncludeSchema.optional(),
+  data: z.union([ FinanceBillUpdateInputSchema,FinanceBillUncheckedUpdateInputSchema ]),
+  where: FinanceBillWhereUniqueInputSchema,
+}).strict() ;
+
+export const FinanceBillUpdateManyArgsSchema: z.ZodType<Prisma.FinanceBillUpdateManyArgs> = z.object({
+  data: z.union([ FinanceBillUpdateManyMutationInputSchema,FinanceBillUncheckedUpdateManyInputSchema ]),
+  where: FinanceBillWhereInputSchema.optional(),
+  limit: z.number().optional(),
+}).strict() ;
+
+export const FinanceBillUpdateManyAndReturnArgsSchema: z.ZodType<Prisma.FinanceBillUpdateManyAndReturnArgs> = z.object({
+  data: z.union([ FinanceBillUpdateManyMutationInputSchema,FinanceBillUncheckedUpdateManyInputSchema ]),
+  where: FinanceBillWhereInputSchema.optional(),
+  limit: z.number().optional(),
+}).strict() ;
+
+export const FinanceBillDeleteManyArgsSchema: z.ZodType<Prisma.FinanceBillDeleteManyArgs> = z.object({
+  where: FinanceBillWhereInputSchema.optional(),
+  limit: z.number().optional(),
+}).strict() ;
+
+export const BillLogCreateArgsSchema: z.ZodType<Prisma.BillLogCreateArgs> = z.object({
+  select: BillLogSelectSchema.optional(),
+  include: BillLogIncludeSchema.optional(),
+  data: z.union([ BillLogCreateInputSchema,BillLogUncheckedCreateInputSchema ]),
+}).strict() ;
+
+export const BillLogUpsertArgsSchema: z.ZodType<Prisma.BillLogUpsertArgs> = z.object({
+  select: BillLogSelectSchema.optional(),
+  include: BillLogIncludeSchema.optional(),
+  where: BillLogWhereUniqueInputSchema,
+  create: z.union([ BillLogCreateInputSchema,BillLogUncheckedCreateInputSchema ]),
+  update: z.union([ BillLogUpdateInputSchema,BillLogUncheckedUpdateInputSchema ]),
+}).strict() ;
+
+export const BillLogCreateManyArgsSchema: z.ZodType<Prisma.BillLogCreateManyArgs> = z.object({
+  data: z.union([ BillLogCreateManyInputSchema,BillLogCreateManyInputSchema.array() ]),
+  skipDuplicates: z.boolean().optional(),
+}).strict() ;
+
+export const BillLogCreateManyAndReturnArgsSchema: z.ZodType<Prisma.BillLogCreateManyAndReturnArgs> = z.object({
+  data: z.union([ BillLogCreateManyInputSchema,BillLogCreateManyInputSchema.array() ]),
+  skipDuplicates: z.boolean().optional(),
+}).strict() ;
+
+export const BillLogDeleteArgsSchema: z.ZodType<Prisma.BillLogDeleteArgs> = z.object({
+  select: BillLogSelectSchema.optional(),
+  include: BillLogIncludeSchema.optional(),
+  where: BillLogWhereUniqueInputSchema,
+}).strict() ;
+
+export const BillLogUpdateArgsSchema: z.ZodType<Prisma.BillLogUpdateArgs> = z.object({
+  select: BillLogSelectSchema.optional(),
+  include: BillLogIncludeSchema.optional(),
+  data: z.union([ BillLogUpdateInputSchema,BillLogUncheckedUpdateInputSchema ]),
+  where: BillLogWhereUniqueInputSchema,
+}).strict() ;
+
+export const BillLogUpdateManyArgsSchema: z.ZodType<Prisma.BillLogUpdateManyArgs> = z.object({
+  data: z.union([ BillLogUpdateManyMutationInputSchema,BillLogUncheckedUpdateManyInputSchema ]),
+  where: BillLogWhereInputSchema.optional(),
+  limit: z.number().optional(),
+}).strict() ;
+
+export const BillLogUpdateManyAndReturnArgsSchema: z.ZodType<Prisma.BillLogUpdateManyAndReturnArgs> = z.object({
+  data: z.union([ BillLogUpdateManyMutationInputSchema,BillLogUncheckedUpdateManyInputSchema ]),
+  where: BillLogWhereInputSchema.optional(),
+  limit: z.number().optional(),
+}).strict() ;
+
+export const BillLogDeleteManyArgsSchema: z.ZodType<Prisma.BillLogDeleteManyArgs> = z.object({
+  where: BillLogWhereInputSchema.optional(),
+  limit: z.number().optional(),
+}).strict() ;
+
+export const BillAttachmentCreateArgsSchema: z.ZodType<Prisma.BillAttachmentCreateArgs> = z.object({
+  select: BillAttachmentSelectSchema.optional(),
+  include: BillAttachmentIncludeSchema.optional(),
+  data: z.union([ BillAttachmentCreateInputSchema,BillAttachmentUncheckedCreateInputSchema ]),
+}).strict() ;
+
+export const BillAttachmentUpsertArgsSchema: z.ZodType<Prisma.BillAttachmentUpsertArgs> = z.object({
+  select: BillAttachmentSelectSchema.optional(),
+  include: BillAttachmentIncludeSchema.optional(),
+  where: BillAttachmentWhereUniqueInputSchema,
+  create: z.union([ BillAttachmentCreateInputSchema,BillAttachmentUncheckedCreateInputSchema ]),
+  update: z.union([ BillAttachmentUpdateInputSchema,BillAttachmentUncheckedUpdateInputSchema ]),
+}).strict() ;
+
+export const BillAttachmentCreateManyArgsSchema: z.ZodType<Prisma.BillAttachmentCreateManyArgs> = z.object({
+  data: z.union([ BillAttachmentCreateManyInputSchema,BillAttachmentCreateManyInputSchema.array() ]),
+  skipDuplicates: z.boolean().optional(),
+}).strict() ;
+
+export const BillAttachmentCreateManyAndReturnArgsSchema: z.ZodType<Prisma.BillAttachmentCreateManyAndReturnArgs> = z.object({
+  data: z.union([ BillAttachmentCreateManyInputSchema,BillAttachmentCreateManyInputSchema.array() ]),
+  skipDuplicates: z.boolean().optional(),
+}).strict() ;
+
+export const BillAttachmentDeleteArgsSchema: z.ZodType<Prisma.BillAttachmentDeleteArgs> = z.object({
+  select: BillAttachmentSelectSchema.optional(),
+  include: BillAttachmentIncludeSchema.optional(),
+  where: BillAttachmentWhereUniqueInputSchema,
+}).strict() ;
+
+export const BillAttachmentUpdateArgsSchema: z.ZodType<Prisma.BillAttachmentUpdateArgs> = z.object({
+  select: BillAttachmentSelectSchema.optional(),
+  include: BillAttachmentIncludeSchema.optional(),
+  data: z.union([ BillAttachmentUpdateInputSchema,BillAttachmentUncheckedUpdateInputSchema ]),
+  where: BillAttachmentWhereUniqueInputSchema,
+}).strict() ;
+
+export const BillAttachmentUpdateManyArgsSchema: z.ZodType<Prisma.BillAttachmentUpdateManyArgs> = z.object({
+  data: z.union([ BillAttachmentUpdateManyMutationInputSchema,BillAttachmentUncheckedUpdateManyInputSchema ]),
+  where: BillAttachmentWhereInputSchema.optional(),
+  limit: z.number().optional(),
+}).strict() ;
+
+export const BillAttachmentUpdateManyAndReturnArgsSchema: z.ZodType<Prisma.BillAttachmentUpdateManyAndReturnArgs> = z.object({
+  data: z.union([ BillAttachmentUpdateManyMutationInputSchema,BillAttachmentUncheckedUpdateManyInputSchema ]),
+  where: BillAttachmentWhereInputSchema.optional(),
+  limit: z.number().optional(),
+}).strict() ;
+
+export const BillAttachmentDeleteManyArgsSchema: z.ZodType<Prisma.BillAttachmentDeleteManyArgs> = z.object({
+  where: BillAttachmentWhereInputSchema.optional(),
   limit: z.number().optional(),
 }).strict() ;

@@ -16,12 +16,16 @@ export default function CarrierSelect({ value, onChange }: CarrierSelectProps) {
   const [carriers, setCarriers] = useState<Carrier[]>([]);
 
   useEffect(() => {
-    fetch('http://localhost:4000/api/carriers')
-      .then((res) => res.json())
-      .then((res) => {
-        if (res.success) setCarriers(res.data);
+    fetch('/api/carriers')
+      .then(res => res.json())
+      .then(({ success, data, error }) => {
+        if (success) {
+          setCarriers(data);
+        } else {
+          console.error('获取物流商失败:', error);
+        }
       })
-      .catch((err) => console.error('获取物流商失败:', err));
+      .catch(error => console.error('获取物流商失败:', error));
   }, []);
 
   return (

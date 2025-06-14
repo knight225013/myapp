@@ -55,28 +55,29 @@ export default function ShipmentDrawer({
   const refreshShipment = async () => {
     console.log('🧪 refreshShipment called');
     try {
-      const [waybillRes, summaryRes] = await Promise.all([
-        fetch(`http://localhost:4000/api/waybills/${shipment.id}`, { cache: 'no-store' }),
-        fetch(`http://localhost:4000/api/waybills/${shipment.id}/summary`, { cache: 'no-store' }),
+      const [shipmentRes, summaryRes] = await Promise.all([
+        fetch(`/api/waybills/${shipment.id}`, { cache: 'no-store' }),
+        fetch(`/api/waybills/${shipment.id}/summary`, { cache: 'no-store' }),
       ]);
-      const waybillData = await waybillRes.json();
-      console.log('✅ waybillData raw:', waybillData);
+
+      const shipmentData = await shipmentRes.json();
       const summaryData = await summaryRes.json();
-      if (waybillData.success && summaryData.success) {
-        console.log('🚚 运单费用字段', {
-          freightCost: waybillData.data.freightCost,
-          extraFee: waybillData.data.extraFee,
-          currency: waybillData.data.currency,
-        });
+
+      if (shipmentData.success) {
+        setCurrentShipment(shipmentData.data);
+      }
+      if (summaryData.success) {
+        // Assuming summaryData.data contains the necessary summary information
+        // You might want to update the currentShipment with this data
         setCurrentShipment({
-          ...waybillData.data,
-          weight: parseFloat(waybillData.data.weight) || 0,
+          ...currentShipment,
+          weight: parseFloat(shipmentData.data.weight) || 0,
           volume: parseFloat(summaryData.data.volume) || 0,
           volumetricWeight: parseFloat(summaryData.data.volumetricWeight) || 0,
           chargeWeight: parseFloat(summaryData.data.chargeWeight) || 0,
-          freightCost: Number(waybillData.data.freightCost) || 0,
-          extraFee: Number(waybillData.data.extraFee) || 0,
-          boxes: waybillData.data.boxes?.map((box: any) => ({
+          freightCost: Number(shipmentData.data.freightCost) || 0,
+          extraFee: Number(shipmentData.data.extraFee) || 0,
+          boxes: shipmentData.data.boxes?.map((box: any) => ({
             ...box,
             weight: parseFloat(box.weight) || 0,
             length: parseFloat(box.length) || 0,
@@ -85,10 +86,10 @@ export default function ShipmentDrawer({
             declareValue: parseFloat(box.declareValue) || 0,
             hasBattery: box.hasBattery || false,
           })),
-          channel: waybillData.data.channel,
-          carrier: waybillData.data.carrier,
-          attachments: waybillData.data.attachments || [],
-          currency: waybillData.data.currency || summaryData.data.currency || 'CNY',
+          channel: shipmentData.data.channel,
+          carrier: shipmentData.data.carrier,
+          attachments: shipmentData.data.attachments || [],
+          currency: shipmentData.data.currency || summaryData.data.currency || 'CNY',
         });
       }
     } catch (error) {
@@ -120,28 +121,28 @@ export default function ShipmentDrawer({
     if (!editingBox) return;
 
     try {
-      const res = await fetch(`http://localhost:4000/api/boxes/${editingBox.id}`, {
+      const res = await fetch(`/api/boxes/${editingBox.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          weight: editingBox.weight,
-          length: editingBox.length,
-          width: editingBox.width,
-          height: editingBox.height,
-          hasBattery: editingBox.hasBattery,
-          declareValue: editingBox.declareValue,
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editingBox),
       });
 
-      const result = await res.json();
-      if (result.success) {
-        await refreshShipment();
-        setEditingBox(null);
-      } else {
-        alert('保存失败：' + result.error);
+      const { success, data, error } = await res.json();
+      if (!success) throw new Error(error);
+
+      // 刷新数据
+      const shipmentRes = await fetch(`/api/waybills/${shipment.id}`, { cache: 'no-store' });
+      const shipmentData = await shipmentRes.json();
+      if (shipmentData.success) {
+        setCurrentShipment(shipmentData.data);
       }
+
+      setEditingBox(null);
     } catch (error) {
-      alert('保存失败：' + (error instanceof Error ? error.message : '未知错误'));
+      console.error('保存箱子失败:', error);
+      alert('保存箱子失败');
     }
   };
 
@@ -151,7 +152,7 @@ export default function ShipmentDrawer({
       return;
     }
     try {
-      const res = await fetch(`http://localhost:4000/api/waybills/${shipment.id}/logs`, {
+      const res = await fetch(`/api/waybills/${shipment.id}/logs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newLog),
@@ -176,7 +177,7 @@ export default function ShipmentDrawer({
         return;
       }
 
-      const res = await fetch(`http://localhost:4000/api/track/update`, {
+      const res = await fetch(`/api/track/update`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -207,7 +208,7 @@ export default function ShipmentDrawer({
     formData.append('uploader', '当前用户'); // 替换为实际用户信息
 
     try {
-      const res = await fetch(`http://localhost:4000/api/waybills/${shipment.id}/attachments`, {
+      const res = await fetch(`/api/waybills/${shipment.id}/attachments`, {
         method: 'POST',
         body: formData,
       });
