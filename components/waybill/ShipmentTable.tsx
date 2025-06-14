@@ -59,8 +59,9 @@ export default function ShipmentTable({
         }),
       });
 
-      const { success, data, error } = await res.json();
-      if (!success) throw new Error(error);
+      const result: any = await res.json();
+      if (!result.success) throw new Error(result.error);
+      const { data } = result;
 
       // 处理下载
       if (data.downloadUrl) {
@@ -107,7 +108,9 @@ export default function ShipmentTable({
       }
     } catch (error) {
       console.error('批量删除失败:', error);
-      alert('批量删除失败');
+      // 错误信息可选处理
+      const msg = error instanceof Error ? error.message : String(error);
+      alert('批量删除失败: ' + msg);
     }
   };
 
@@ -117,12 +120,9 @@ export default function ShipmentTable({
     }
 
     try {
-      const res = await fetch(`/api/waybills/${shipment.id}`, {
-        method: 'DELETE'
-      });
-      
-      const { success, error } = await res.json();
-      if (!success) throw new Error(error);
+      const res = await fetch(`/api/waybills/${shipment.id}`, { method: 'DELETE' });
+      const data: any = await res.json();
+      if (!data.success) throw new Error(data.error);
       
       alert('运单删除成功');
       if (onDelete) {
@@ -130,7 +130,8 @@ export default function ShipmentTable({
       }
     } catch (error) {
       console.error('删除运单失败:', error);
-      alert('删除运单失败: ' + error.message);
+      const msg = error instanceof Error ? error.message : String(error);
+      alert('删除运单失败: ' + msg);
     }
   };
 
@@ -229,30 +230,34 @@ export default function ShipmentTable({
               <td className="p-6 text-center">{shipment.volumetricWeight?.toFixed(2) || '--'}</td>
               <td className="p-6 text-center">{shipment.chargeWeight?.toFixed(2) || '--'}</td>
               <td className="p-6 text-center">
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium shadow-sm ${
-                    shipment.status === '已签收'
-                      ? 'bg-gradient-to-r from-green-200 to-green-400 text-green-700'
-                      : shipment.status === '转运中'
-                        ? 'bg-gradient-to-r from-blue-200 to-blue-400 text-blue-700'
-                        : shipment.status === '已取消'
-                          ? 'bg-gradient-to-r from-red-200 to-red-400 text-red-700'
-                          : shipment.status === '退件'
-                            ? 'bg-gradient-to-r from-gray-200 to-gray-400 text-gray-700'
-                            : shipment.status === '已下单'
-                              ? 'bg-gradient-to-r from-yellow-200 to-yellow-400 text-yellow-700'
-                              : shipment.status === '已收货'
-                                ? 'bg-gradient-to-r from-purple-200 to-purple-400 text-purple-700'
-                                : 'text-gray-700'
-                  }`}
-                >
-                  {shipment.status || '无轨迹'}
-                </span>
-                {shipment.logs?.[0]?.timestamp && (
-                  <div className="text-xs text-gray-500 mt-1">
-                    {new Date(shipment.logs[0].timestamp).toLocaleString()}
-                  </div>
-                )}
+                {(() => {
+                  const statusToShow = shipment.logs?.[0]?.status || shipment.status;
+                  const statusClass = statusToShow === '已签收'
+                    ? 'bg-gradient-to-r from-green-200 to-green-400 text-green-700'
+                    : statusToShow === '转运中'
+                      ? 'bg-gradient-to-r from-blue-200 to-blue-400 text-blue-700'
+                      : statusToShow === '已取消'
+                        ? 'bg-gradient-to-r from-red-200 to-red-400 text-red-700'
+                        : statusToShow === '退件'
+                          ? 'bg-gradient-to-r from-gray-200 to-gray-400 text-gray-700'
+                          : statusToShow === '已下单'
+                            ? 'bg-gradient-to-r from-yellow-200 to-yellow-400 text-yellow-700'
+                            : statusToShow === '已收货'
+                              ? 'bg-gradient-to-r from-purple-200 to-purple-400 text-purple-700'
+                              : 'text-gray-700';
+                  return (
+                    <>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium shadow-sm ${statusClass}`}>
+                        {statusToShow || '无轨迹'}
+                      </span>
+                      {shipment.logs?.[0]?.timestamp && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          {new Date(shipment.logs[0].timestamp).toLocaleString()}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </td>
               <td className="p-6 text-center">
                 <div className="flex justify-center gap-2">

@@ -1,5 +1,9 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
+  "/finance/invoices/page": "app/finance/invoices/page.js",
   "/finance/page": "app/finance/page.js",
-  "/waybill/page": "app/waybill/page.js"
+  "/settings/page": "app/settings/page.js",
+  "/waybill/page": "app/waybill/page.js",
+  "/page": "app/page.js",
+  "/channels/page": "app/channels/page.js"
 }

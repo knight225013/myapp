@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { FileText, CreditCard, TrendingUp, Calendar, Download, Users } from 'lucide-react';
 
 interface Bill {
   id: string;
@@ -60,6 +61,9 @@ export default function BillTable({ bills }: BillTableProps) {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 操作
               </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                快捷操作
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -97,6 +101,52 @@ export default function BillTable({ bills }: BillTableProps) {
                   >
                     查看
                   </button>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => router.push(`/finance/invoices/new?billId=${bill.id}`)}
+                      className="flex items-center text-gray-600 hover:text-gray-900 text-xs transition-colors"
+                    >
+                      <FileText className="w-4 h-4 mr-1" />
+                      创建发票
+                    </button>
+                    <button
+                      onClick={() => router.push(`/finance/payments/new?billId=${bill.id}`)}
+                      className="flex items-center text-gray-600 hover:text-gray-900 text-xs transition-colors"
+                    >
+                      <CreditCard className="w-4 h-4 mr-1" />
+                      记录付款
+                    </button>
+                    <button
+                      onClick={() => router.push(`/finance/billing?billId=${bill.id}`)}
+                      className="flex items-center text-gray-600 hover:text-gray-900 text-xs transition-colors"
+                    >
+                      <TrendingUp className="w-4 h-4 mr-1" />
+                      自动计费
+                    </button>
+                    <button
+                      onClick={() => router.push(`/finance/statements?billId=${bill.id}`)}
+                      className="flex items-center text-gray-600 hover:text-gray-900 text-xs transition-colors"
+                    >
+                      <Calendar className="w-4 h-4 mr-1" />
+                      生成对账单
+                    </button>
+                    <button
+                      onClick={() => router.push(`/finance/reports?billId=${bill.id}`)}
+                      className="flex items-center text-gray-600 hover:text-gray-900 text-xs transition-colors"
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      财务报表
+                    </button>
+                    <button
+                      onClick={() => router.push(`/finance/credit?billId=${bill.id}`)}
+                      className="flex items-center text-gray-600 hover:text-gray-900 text-xs transition-colors"
+                    >
+                      <Users className="w-4 h-4 mr-1" />
+                      信用管理
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

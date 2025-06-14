@@ -514,9 +514,10 @@ model FinanceBill {
   billNo      String           @unique
   customer    Customer         @relation(fields: [customerId], references: [id])
   customerId  String
+  waybillId   String
+  waybill     FBAOrder         @relation(fields: [waybillId], references: [id])
   totalAmount Float
   status      String           // draft, audited, issued, settled, void
-  waybills    FBAOrder[]
   logs        BillLog[]        // 账单日志
   attachments BillAttachment[] // 账单附件
   createdAt   DateTime         @default(now())
@@ -524,6 +525,7 @@ model FinanceBill {
 
   @@index([customerId])
   @@index([status])
+  @@index([waybillId])
 }
 
 // 账单日志模型

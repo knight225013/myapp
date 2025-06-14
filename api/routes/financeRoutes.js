@@ -14,4 +14,14 @@ router.post('/prices/:priceId/settings', financeController.createSetting);
 // 批量导入
 router.post('/prices/:priceId/settings/import', financeController.importPrices);
 
+// 财务账单
+router.get('/bills', financeController.listBills);
+router.get('/bills/:billId', financeController.getBill);
+
+// 仪表板统计
+router.get('/reports/dashboard', financeController.dashboard);
+
+// 搜索账单
+router.get('/search', financeController.searchBills);
+
 module.exports = router;

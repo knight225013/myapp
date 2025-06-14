@@ -306,60 +306,6 @@ export default function FinancePage() {
 
         <Card>
           <CardHeader>
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              快捷操作
-            </h3>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              <Link href="/finance/invoices/new">
-                <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
-                  <FileText className="h-6 w-6" />
-                  <span className="text-sm">创建发票</span>
-                </Button>
-              </Link>
-              
-              <Link href="/finance/payments/new">
-                <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
-                  <CreditCard className="h-6 w-6" />
-                  <span className="text-sm">记录付款</span>
-                </Button>
-              </Link>
-              
-              <Link href="/finance/billing">
-                <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
-                  <TrendingUp className="h-6 w-6" />
-                  <span className="text-sm">自动计费</span>
-                </Button>
-              </Link>
-              
-              <Link href="/finance/statements">
-                <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
-                  <Calendar className="h-6 w-6" />
-                  <span className="text-sm">生成对账单</span>
-                </Button>
-              </Link>
-              
-              <Link href="/finance/reports">
-                <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
-                  <Download className="h-6 w-6" />
-                  <span className="text-sm">财务报表</span>
-                </Button>
-              </Link>
-              
-              <Link href="/finance/credit">
-                <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
-                  <Users className="h-6 w-6" />
-                  <span className="text-sm">信用管理</span>
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <h3 className="text-lg font-semibold">最近活动</h3>
           </CardHeader>
           <CardContent>
