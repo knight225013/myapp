@@ -391,7 +391,7 @@ export default function SettingsPage() {
                 创建新用户
               </Button>
             </Link>
-            <Link href="/settings/warehouses/new">
+            <Link href="/settings/warehouses">
               <Button variant="outline" className="w-full justify-start">
                 <Warehouse className="h-4 w-4 mr-2" />
                 添加仓库

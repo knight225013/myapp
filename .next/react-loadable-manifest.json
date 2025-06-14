@@ -1,28 +1,4 @@
 {
-  "app\\channels\\page.tsx -> @/components/channel/ChannelForm": {
-    "id": "app\\channels\\page.tsx -> @/components/channel/ChannelForm",
-    "files": [
-      "static/chunks/_app-pages-browser_components_channel_ChannelForm_tsx.js"
-    ]
-  },
-  "app\\channels\\page.tsx -> @/components/channel/ChannelTable": {
-    "id": "app\\channels\\page.tsx -> @/components/channel/ChannelTable",
-    "files": [
-      "static/chunks/_app-pages-browser_components_channel_ChannelTable_tsx.js"
-    ]
-  },
-  "app\\channels\\page.tsx -> @/components/smart-template/ExcelImportExport": {
-    "id": "app\\channels\\page.tsx -> @/components/smart-template/ExcelImportExport",
-    "files": [
-      "static/chunks/_app-pages-browser_components_smart-template_ExcelImportExport_tsx.js"
-    ]
-  },
-  "app\\channels\\page.tsx -> @/components/smart-template/LabelTemplateEditor": {
-    "id": "app\\channels\\page.tsx -> @/components/smart-template/LabelTemplateEditor",
-    "files": [
-      "static/chunks/_app-pages-browser_components_smart-template_LabelTemplateEditor_tsx.js"
-    ]
-  },
   "app\\waybill\\page.tsx -> @/components/waybill/MultiStepShipmentForm": {
     "id": "app\\waybill\\page.tsx -> @/components/waybill/MultiStepShipmentForm",
     "files": [

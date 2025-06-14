@@ -8,17 +8,17 @@ import Badge from '@/components/ui/Badge';
 import { 
   Warehouse, 
   Plus, 
-  Search, 
   Edit, 
   Trash2, 
   MapPin,
   ArrowLeft,
   Building,
   Users,
-  Package,
+  Phone,
   Settings,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  X
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -27,30 +27,55 @@ interface WarehouseData {
   code: string;
   name: string;
   address: string;
+  detailedAddress: string;
   city: string;
   country: string;
-  manager?: string;
-  phone?: string;
+  manager: string;
+  phone: string;
   email?: string;
-  status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
-  capacity?: number;
-  area?: number;
+  status: 'ACTIVE' | 'INACTIVE';
   description?: string;
   createdAt: string;
-  locationCount: number;
-  inventoryValue: number;
-  utilizationRate: number;
+}
+
+interface CreateWarehouseForm {
+  code: string;
+  name: string;
+  address: string;
+  detailedAddress: string;
+  city: string;
+  country: string;
+  manager: string;
+  phone: string;
+  email: string;
+  description: string;
 }
 
 export default function WarehousesPage() {
   const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingWarehouse, setEditingWarehouse] = useState<WarehouseData | null>(null);
+  const [createForm, setCreateForm] = useState<CreateWarehouseForm>({
+    code: '',
+    name: '',
+    address: '',
+    detailedAddress: '',
+    city: '',
+    country: '中国',
+    manager: '',
+    phone: '',
+    email: '',
+    description: ''
+  });
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [settingsWarehouse, setSettingsWarehouse] = useState<WarehouseData | null>(null);
+  const [settingsForm, setSettingsForm] = useState({ manager: '', phone: '' });
 
   useEffect(() => {
     fetchWarehouses();
-  }, [searchTerm, statusFilter]);
+  }, []);
 
   const fetchWarehouses = async () => {
     try {
@@ -63,76 +88,49 @@ export default function WarehousesPage() {
           code: 'WH001',
           name: '上海主仓库',
           address: '上海市浦东新区张江高科技园区',
+          detailedAddress: '上海市浦东新区张江高科技园区科苑路399号张江创新园10号楼',
           city: '上海',
           country: '中国',
           manager: '张经理',
           phone: '+86-21-12345678',
           email: 'shanghai@warehouse.com',
           status: 'ACTIVE',
-          capacity: 10000,
-          area: 5000,
           description: '主要用于进出口货物的存储和分拣',
-          createdAt: '2024-01-01T00:00:00Z',
-          locationCount: 150,
-          inventoryValue: 2500000,
-          utilizationRate: 85
+          createdAt: '2024-01-01T00:00:00Z'
         },
         {
           id: '2',
           code: 'WH002',
           name: '深圳分仓库',
           address: '深圳市南山区科技园',
+          detailedAddress: '深圳市南山区科技园南区深南大道10000号腾讯大厦A座',
           city: '深圳',
           country: '中国',
           manager: '李经理',
           phone: '+86-755-87654321',
           email: 'shenzhen@warehouse.com',
           status: 'ACTIVE',
-          capacity: 8000,
-          area: 4000,
           description: '华南地区货物集散中心',
-          createdAt: '2024-01-02T00:00:00Z',
-          locationCount: 120,
-          inventoryValue: 1800000,
-          utilizationRate: 72
+          createdAt: '2024-01-02T00:00:00Z'
         },
         {
           id: '3',
           code: 'WH003',
           name: '北京仓库',
           address: '北京市朝阳区望京SOHO',
+          detailedAddress: '北京市朝阳区望京SOHO塔1 A座2901',
           city: '北京',
           country: '中国',
           manager: '王经理',
           phone: '+86-10-98765432',
           email: 'beijing@warehouse.com',
-          status: 'MAINTENANCE',
-          capacity: 6000,
-          area: 3000,
-          description: '华北地区货物存储中心，目前正在维护升级',
-          createdAt: '2024-01-03T00:00:00Z',
-          locationCount: 80,
-          inventoryValue: 1200000,
-          utilizationRate: 45
+          status: 'INACTIVE',
+          description: '华北地区货物存储中心',
+          createdAt: '2024-01-03T00:00:00Z'
         }
       ];
 
-      // 应用过滤器
-      let filtered = mockWarehouses;
-      
-      if (searchTerm) {
-        filtered = filtered.filter(warehouse =>
-          warehouse.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          warehouse.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          warehouse.city.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-      }
-
-      if (statusFilter) {
-        filtered = filtered.filter(warehouse => warehouse.status === statusFilter);
-      }
-
-      setWarehouses(filtered);
+      setWarehouses(mockWarehouses);
     } catch (error) {
       console.error('获取仓库列表失败:', error);
     } finally {
@@ -140,11 +138,113 @@ export default function WarehousesPage() {
     }
   };
 
+  const handleStatusToggle = async (warehouseId: string, newStatus: 'ACTIVE' | 'INACTIVE') => {
+    try {
+      // 模拟API调用
+      setWarehouses(prev => prev.map(w => 
+        w.id === warehouseId ? { ...w, status: newStatus } : w
+      ));
+      console.log(`仓库 ${warehouseId} 状态更新为: ${newStatus}`);
+    } catch (error) {
+      console.error('更新仓库状态失败:', error);
+    }
+  };
+
+  const handleCreateWarehouse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      // 模拟API调用
+      const newWarehouse: WarehouseData = {
+        id: Date.now().toString(),
+        ...createForm,
+        status: 'ACTIVE',
+        createdAt: new Date().toISOString()
+      };
+      setWarehouses(prev => [...prev, newWarehouse]);
+      setShowCreateModal(false);
+      setCreateForm({
+        code: '',
+        name: '',
+        address: '',
+        detailedAddress: '',
+        city: '',
+        country: '中国',
+        manager: '',
+        phone: '',
+        email: '',
+        description: ''
+      });
+    } catch (error) {
+      console.error('创建仓库失败:', error);
+    }
+  };
+
+  const handleEditWarehouse = (warehouse: WarehouseData) => {
+    setEditingWarehouse(warehouse);
+    setCreateForm({
+      code: warehouse.code,
+      name: warehouse.name,
+      address: warehouse.address,
+      detailedAddress: warehouse.detailedAddress,
+      city: warehouse.city,
+      country: warehouse.country,
+      manager: warehouse.manager,
+      phone: warehouse.phone,
+      email: warehouse.email || '',
+      description: warehouse.description || ''
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateWarehouse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingWarehouse) return;
+    
+    try {
+      // 模拟API调用
+      setWarehouses(prev => prev.map(w => 
+        w.id === editingWarehouse.id 
+          ? { ...w, ...createForm }
+          : w
+      ));
+      setShowEditModal(false);
+      setEditingWarehouse(null);
+    } catch (error) {
+      console.error('更新仓库失败:', error);
+    }
+  };
+
+  const handleDeleteWarehouse = async (warehouseId: string) => {
+    if (!confirm('确定要删除这个仓库吗？此操作不可恢复。')) return;
+    
+    try {
+      // 模拟API调用
+      setWarehouses(prev => prev.filter(w => w.id !== warehouseId));
+    } catch (error) {
+      console.error('删除仓库失败:', error);
+    }
+  };
+
+  const handleSettingsWarehouse = (warehouse: WarehouseData) => {
+    setSettingsWarehouse(warehouse);
+    setSettingsForm({ manager: warehouse.manager, phone: warehouse.phone });
+    setShowSettingsModal(true);
+  };
+
+  const handleSettingsSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!settingsWarehouse) return;
+    setWarehouses(prev => prev.map(w =>
+      w.id === settingsWarehouse.id ? { ...w, manager: settingsForm.manager, phone: settingsForm.phone } : w
+    ));
+    setShowSettingsModal(false);
+    setSettingsWarehouse(null);
+  };
+
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      ACTIVE: { variant: 'success' as const, text: '正常运营', icon: CheckCircle },
-      INACTIVE: { variant: 'secondary' as const, text: '暂停使用', icon: Package },
-      MAINTENANCE: { variant: 'warning' as const, text: '维护中', icon: AlertTriangle }
+      ACTIVE: { variant: 'success' as const, text: '开启', icon: CheckCircle },
+      INACTIVE: { variant: 'default' as const, text: '关闭', icon: AlertTriangle }
     };
     
     const config = statusConfig[status as keyof typeof statusConfig];
@@ -156,17 +256,6 @@ export default function WarehousesPage() {
         {config.text}
       </Badge>
     );
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('zh-CN', {
-      style: 'currency',
-      currency: 'CNY'
-    }).format(amount);
-  };
-
-  const formatArea = (area: number) => {
-    return `${area.toLocaleString()} m²`;
   };
 
   if (loading) {
@@ -198,48 +287,21 @@ export default function WarehousesPage() {
           <Warehouse className="h-8 w-8 text-blue-600" />
           <div>
             <h1 className="text-3xl font-bold text-gray-900">仓库管理</h1>
-            <p className="text-gray-600 mt-1">管理仓库信息、库位和存储策略</p>
+            <p className="text-gray-600 mt-1">管理仓库信息和状态</p>
           </div>
         </div>
       </div>
 
       {/* 操作栏 */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center space-x-4">
-          <Link href="/settings/warehouses/new">
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              添加仓库
-            </Button>
-          </Link>
-        </div>
-
-        <div className="flex items-center space-x-4 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-80">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="搜索仓库名称、编码或城市..."
-              value={searchTerm}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">全部状态</option>
-            <option value="ACTIVE">正常运营</option>
-            <option value="INACTIVE">暂停使用</option>
-            <option value="MAINTENANCE">维护中</option>
-          </select>
-        </div>
+      <div className="flex justify-between items-center">
+        <Button onClick={() => setShowCreateModal(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          添加仓库
+        </Button>
       </div>
 
       {/* 统计概览 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
@@ -261,7 +323,7 @@ export default function WarehousesPage() {
                 <CheckCircle className="h-6 w-6 text-green-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">正常运营</p>
+                <p className="text-sm font-medium text-gray-600">开启仓库</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {warehouses.filter(w => w.status === 'ACTIVE').length}
                 </p>
@@ -273,29 +335,13 @@ export default function WarehousesPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Package className="h-6 w-6 text-purple-600" />
+              <div className="p-2 bg-gray-100 rounded-lg">
+                <AlertTriangle className="h-6 w-6 text-gray-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">总库位数</p>
+                <p className="text-sm font-medium text-gray-600">关闭仓库</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {warehouses.reduce((sum, w) => sum + w.locationCount, 0)}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Users className="h-6 w-6 text-orange-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">库存价值</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {formatCurrency(warehouses.reduce((sum, w) => sum + w.inventoryValue, 0))}
+                  {warehouses.filter(w => w.status === 'INACTIVE').length}
                 </p>
               </div>
             </div>
@@ -320,82 +366,70 @@ export default function WarehousesPage() {
             </CardHeader>
             
             <CardContent className="space-y-4">
-              {/* 基本信息 */}
+              {/* 详细地址 */}
+              <div className="space-y-2">
+                <div className="flex items-start text-sm text-gray-600">
+                  <MapPin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
+                  <span>{warehouse.detailedAddress}</span>
+                </div>
+              </div>
+
+              {/* 负责人信息 */}
               <div className="space-y-2">
                 <div className="flex items-center text-sm text-gray-600">
-                  <MapPin className="h-4 w-4 mr-2" />
-                  {warehouse.city}, {warehouse.country}
+                  <Users className="h-4 w-4 mr-2" />
+                  <span>负责人: {warehouse.manager}</span>
                 </div>
-                {warehouse.manager && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Users className="h-4 w-4 mr-2" />
-                    {warehouse.manager}
-                  </div>
-                )}
-              </div>
-
-              {/* 容量信息 */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-gray-500">面积</p>
-                  <p className="font-medium">{warehouse.area ? formatArea(warehouse.area) : '-'}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">容量</p>
-                  <p className="font-medium">{warehouse.capacity ? warehouse.capacity.toLocaleString() : '-'}</p>
+                <div className="flex items-center text-sm text-gray-600">
+                  <Phone className="h-4 w-4 mr-2" />
+                  <span>联系电话: {warehouse.phone}</span>
                 </div>
               </div>
 
-              {/* 使用率 */}
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-500">使用率</span>
-                  <span className="font-medium">{warehouse.utilizationRate}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className={`h-2 rounded-full ${
-                      warehouse.utilizationRate >= 90 
-                        ? 'bg-red-500' 
-                        : warehouse.utilizationRate >= 70 
-                        ? 'bg-yellow-500' 
-                        : 'bg-green-500'
-                    }`}
-                    style={{ width: `${warehouse.utilizationRate}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              {/* 统计信息 */}
-              <div className="grid grid-cols-2 gap-4 text-sm pt-2 border-t">
-                <div>
-                  <p className="text-gray-500">库位数量</p>
-                  <p className="font-medium">{warehouse.locationCount}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">库存价值</p>
-                  <p className="font-medium">{formatCurrency(warehouse.inventoryValue)}</p>
-                </div>
+              {/* 状态控制按钮 */}
+              <div className="flex items-center gap-2 pt-2 border-t">
+                <span className="text-sm text-gray-500">状态控制:</span>
+                <Button
+                  size="sm"
+                  variant={warehouse.status === 'ACTIVE' ? 'primary' : 'outline'}
+                  onClick={() => handleStatusToggle(warehouse.id, 'ACTIVE')}
+                  disabled={warehouse.status === 'ACTIVE'}
+                >
+                  开启
+                </Button>
+                <Button
+                  size="sm"
+                  variant={warehouse.status === 'INACTIVE' ? 'primary' : 'outline'}
+                  onClick={() => handleStatusToggle(warehouse.id, 'INACTIVE')}
+                  disabled={warehouse.status === 'INACTIVE'}
+                >
+                  关闭
+                </Button>
               </div>
 
               {/* 操作按钮 */}
               <div className="flex items-center justify-between pt-4 border-t">
                 <div className="flex items-center space-x-2">
-                  <Link href={`/settings/warehouses/${warehouse.id}/edit`}>
-                    <Button variant="outline" size="sm">
-                      <Edit className="h-4 w-4 mr-1" />
-                      编辑
-                    </Button>
-                  </Link>
-                  <Link href={`/settings/warehouses/${warehouse.id}/settings`}>
-                    <Button variant="outline" size="sm">
-                      <Settings className="h-4 w-4 mr-1" />
-                      设置
-                    </Button>
-                  </Link>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleEditWarehouse(warehouse)}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    编辑
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleSettingsWarehouse(warehouse)}>
+                    <Settings className="h-4 w-4 mr-1" />
+                    设置
+                  </Button>
                 </div>
                 
-                <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-red-600 hover:text-red-700"
+                  onClick={() => handleDeleteWarehouse(warehouse.id)}
+                >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -413,15 +447,272 @@ export default function WarehousesPage() {
               开始创建第一个仓库
             </p>
             <div className="mt-6">
-              <Link href="/settings/warehouses/new">
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  添加仓库
-                </Button>
-              </Link>
+              <Button onClick={() => setShowCreateModal(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                添加仓库
+              </Button>
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* 创建仓库弹窗 */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">创建仓库</h2>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowCreateModal(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <form onSubmit={handleCreateWarehouse} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="仓库编码"
+                  value={createForm.code}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                    setCreateForm({...createForm, code: e.target.value})}
+                  required
+                />
+                <Input
+                  label="仓库名称"
+                  value={createForm.name}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                    setCreateForm({...createForm, name: e.target.value})}
+                  required
+                />
+              </div>
+              
+              <Input
+                label="详细地址"
+                value={createForm.detailedAddress}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                  setCreateForm({...createForm, detailedAddress: e.target.value})}
+                required
+              />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="城市"
+                  value={createForm.city}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                    setCreateForm({...createForm, city: e.target.value})}
+                  required
+                />
+                <Input
+                  label="国家"
+                  value={createForm.country}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                    setCreateForm({...createForm, country: e.target.value})}
+                  required
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="负责人"
+                  value={createForm.manager}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                    setCreateForm({...createForm, manager: e.target.value})}
+                  required
+                />
+                <Input
+                  label="联系电话"
+                  value={createForm.phone}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                    setCreateForm({...createForm, phone: e.target.value})}
+                  required
+                />
+              </div>
+              
+              <Input
+                label="邮箱"
+                type="email"
+                value={createForm.email}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                  setCreateForm({...createForm, email: e.target.value})}
+              />
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  描述
+                </label>
+                <textarea
+                  value={createForm.description}
+                  onChange={(e) => setCreateForm({...createForm, description: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows={3}
+                />
+              </div>
+              
+              <div className="flex justify-end gap-4 pt-4">
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => setShowCreateModal(false)}
+                >
+                  取消
+                </Button>
+                <Button type="submit">
+                  创建仓库
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 编辑仓库弹窗 */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">编辑仓库</h2>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowEditModal(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <form onSubmit={handleUpdateWarehouse} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="仓库编码"
+                  value={createForm.code}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                    setCreateForm({...createForm, code: e.target.value})}
+                  required
+                />
+                <Input
+                  label="仓库名称"
+                  value={createForm.name}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                    setCreateForm({...createForm, name: e.target.value})}
+                  required
+                />
+              </div>
+              
+              <Input
+                label="详细地址"
+                value={createForm.detailedAddress}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                  setCreateForm({...createForm, detailedAddress: e.target.value})}
+                required
+              />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="城市"
+                  value={createForm.city}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                    setCreateForm({...createForm, city: e.target.value})}
+                  required
+                />
+                <Input
+                  label="国家"
+                  value={createForm.country}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                    setCreateForm({...createForm, country: e.target.value})}
+                  required
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="负责人"
+                  value={createForm.manager}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                    setCreateForm({...createForm, manager: e.target.value})}
+                  required
+                />
+                <Input
+                  label="联系电话"
+                  value={createForm.phone}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                    setCreateForm({...createForm, phone: e.target.value})}
+                  required
+                />
+              </div>
+              
+              <Input
+                label="邮箱"
+                type="email"
+                value={createForm.email}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                  setCreateForm({...createForm, email: e.target.value})}
+              />
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  描述
+                </label>
+                <textarea
+                  value={createForm.description}
+                  onChange={(e) => setCreateForm({...createForm, description: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows={3}
+                />
+              </div>
+              
+              <div className="flex justify-end gap-4 pt-4">
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => setShowEditModal(false)}
+                >
+                  取消
+                </Button>
+                <Button type="submit">
+                  更新仓库
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showSettingsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">仓库设置</h2>
+              <Button variant="outline" size="sm" onClick={() => setShowSettingsModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <form onSubmit={handleSettingsSave} className="space-y-4">
+              <Input
+                label="负责人"
+                value={settingsForm.manager}
+                onChange={e => setSettingsForm({ ...settingsForm, manager: e.target.value })}
+                required
+              />
+              <Input
+                label="联系电话"
+                value={settingsForm.phone}
+                onChange={e => setSettingsForm({ ...settingsForm, phone: e.target.value })}
+                required
+              />
+              <div className="flex justify-end gap-4 pt-4">
+                <Button type="button" variant="outline" onClick={() => setShowSettingsModal(false)}>
+                  取消
+                </Button>
+                <Button type="submit">
+                  保存设置
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
