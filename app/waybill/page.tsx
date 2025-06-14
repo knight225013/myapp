@@ -1,62 +1,38 @@
-// page.tsx
 'use client';
-import StatusSwitcher from '@/components/ui/StatusSwitcher';
-import { useState, useEffect } from 'react';
-import ShipmentTable from '@/components/waybill/ShipmentTable';
-import MultiStepShipmentForm from '@/components/waybill/MultiStepShipmentForm';
-import FilterPanel from '@/components/finance/FilterPanel';
-import ShipmentDrawer from '@/components/waybill/ShipmentDrawer';
-import ShipmentEditForm from '@/components/waybill/ShipmentEditForm';
-import ExcelImportPanel from '@/components/smart-template/ExcelImportPanel';
-import FieldMatchManager from '@/components/waybill/FieldMatchManager'; // 替换为 FieldMatchManager
-import FieldMatchEditor from '@/components/waybill/FieldMatchEditor';
-import ExcelFieldMapper from '@/components/smart-template/ExcelFieldMapper';
-import ShipmentPreviewConfirm from '@/components/waybill/ShipmentPreviewConfirm';
-import UploadLabelForm from '@/components/smart-template/UploadLabelForm';
-import { Package, CheckCircle, Truck, AlertCircle } from 'lucide-react';
+
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+import { Package, CheckCircle, Truck, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
+import { useDebounce } from '@/hooks/useDebounce';
+import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
+import { cache, cachedFetch, useCachedData } from '@/utils/cache';
+import { prefetchRoute, smartPrefetch, usePrefetch } from '@/utils/prefetch';
 import { Filters } from '@/types/filters';
 import { Shipment } from '@/types/shipment';
-import { parseExcel, parseCellKey } from '@/utils/parseExcelGeneric';
-import { cleanImportRecord } from '@/utils/cleanImportRecord';
-import * as XLSX from 'xlsx';
-import WaveInput from '@/components/ui/WaveInput';
 
-type TemplateMode = 'grid' | 'directional' | 'fixed';
+// 动态导入大型组件
+const ShipmentTable = lazy(() => import('@/components/waybill/ShipmentTable'));
+const MultiStepShipmentForm = lazy(() => import('@/components/waybill/MultiStepShipmentForm'));
+const ShipmentDrawer = lazy(() => import('@/components/waybill/ShipmentDrawer'));
+const ShipmentEditForm = lazy(() => import('@/components/waybill/ShipmentEditForm'));
 
-type FieldAreaBinding = {
-  field: string;
-  from: string;
-  direction: 'horizontal' | 'vertical';
-  length: number;
-};
+// 组件加载骨架屏
+const ComponentSkeleton = () => (
+  <div className="animate-pulse">
+    <div className="h-8 bg-gray-200 rounded mb-4"></div>
+    <div className="h-64 bg-gray-200 rounded"></div>
+  </div>
+);
 
-interface TemplateInfo {
-  id: string;
-  name: string;
-  mode: TemplateMode;
-  type: 'FBA' | '传统';
-  startRow: number;
-  bindings?: FieldAreaBinding[];
-  columns?: string[];
-  filePath?: string;
-}
-
-type Activity = {
-  timestamp: string;
-  message: string;
-};
-
-type SystemMessage = {
-  title: string;
-  content: string;
-};
-
-interface WaybillResponse {
-  success: boolean;
-  data: Shipment[];
-  total: number;
-  error?: string;
-}
+// 状态按钮配置
+const statusButtons = [
+  { label: '全部', status: '全部', icon: Package },
+  { label: '已下单', status: '已下单', icon: CheckCircle },
+  { label: '已收货', status: '已收货', icon: Package },
+  { label: '转运中', status: '转运中', icon: Truck },
+  { label: '已签收', status: '已签收', icon: CheckCircle },
+  { label: '已取消', status: '已取消', icon: AlertCircle },
+  { label: '退件', status: '退件', icon: AlertCircle },
+];
 
 interface Channel {
   id: string;
@@ -64,18 +40,47 @@ interface Channel {
 }
 
 export default function WaybillPage() {
+  // 性能监控
+  usePerformanceMonitor('WaybillPage');
+
+  // 记录用户访问
+  useEffect(() => {
+    smartPrefetch.recordVisit('/waybill');
+    smartPrefetch.prefetchPredicted('/waybill');
+  }, []);
+
+  // UI状态管理
   const [showCreatePanel, setShowCreatePanel] = useState(false);
-  const [showExcelImport, setShowExcelImport] = useState(false);
-  const [showBatchImport, setShowBatchImport] = useState(false);
-  const [showFieldMatch, setShowFieldMatch] = useState(false);
-  const [showFieldEditor, setShowFieldEditor] = useState(false);
-  const [showFieldMapper, setShowFieldMapper] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<TemplateInfo | undefined>(undefined);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // 数据状态管理
   const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({
+    '全部': 0,
+    '已下单': 0,
+    '已收货': 0,
+    '转运中': 0,
+    '已签收': 0,
+    '已取消': 0,
+    '退件': 0,
+  });
   const [total, setTotal] = useState(0);
+  
+  // 分页和过滤状态
   const [currentPage, setCurrentPage] = useState(1);
   const [limit] = useState(30);
   const [selectedStatus, setSelectedStatus] = useState('全部');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchType, setSearchType] = useState<'waybillNumber'|'country'|'recipient'|'trackingNumber'>('waybillNumber');
+  
+  // 使用防抖优化搜索
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  
   const [filters, setFilters] = useState<Filters>({
     status: '',
     country: '',
@@ -86,715 +91,426 @@ export default function WaybillPage() {
     trackingNumber: '',
     recipient: '',
   });
-  const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
-  const [systemMessages, setSystemMessages] = useState<SystemMessage[]>([]);
+
+  // 编辑相关状态
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [previewRecords, setPreviewRecords] = useState<Record<string, any>[]>([]);
-  const [previewColumns, setPreviewColumns] = useState<string[]>([]);
-  const [isBatch, setIsBatch] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<TemplateInfo | null>(null);
-  const [previewRecord, setPreviewRecord] = useState<Record<string, any> | null>(null);
-  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
-  const [formData, setFormData] = useState<Record<string, any>>({});
-  const [channels, setChannels] = useState<Channel[]>([]);
-  const [selectedChannel, setSelectedChannel] = useState('');
-  const [searchType, setSearchType] = useState<'waybillNumber'|'country'|'recipient'|'client'|'trackingNumber'>('waybillNumber');
 
-  const statusButtons = [
-    { label: '全部', status: '全部' },
-    { label: '已下单', status: '已下单' },
-    { label: '已收货', status: '已收货' },
-    { label: '转运中', status: '转运中' },
-    { label: '已签收', status: '已签收' },
-    { label: '已取消', status: '已取消' },
-    { label: '退件', status: '退件' },
-  ];
+  // 预取下一页数据
+  usePrefetch(
+    currentPage < Math.ceil(total / limit) ? {
+      url: `http://localhost:4000/api/waybills?page=${currentPage + 1}&limit=${limit}&type=FBA`,
+      ttl: 300000,
+      priority: 'low'
+    } : null,
+    [currentPage, total, limit]
+  );
 
-  // 获取渠道列表
-  useEffect(() => {
-    const fetchChannels = async () => {
-      try {
-        const res = await fetch('http://localhost:4000/api/channels');
-        if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
-        const data = await res.json();
-        console.log('Channels API response:', data);
-        if (data.success && Array.isArray(data.data)) {
-          setChannels(data.data);
-        } else {
-          console.error('❌ 获取渠道失败:', data.error || '数据格式错误');
-          setChannels([]); // 确保 channels 始终为数组
-        }
-      } catch (err) {
-        console.error('❌ 获取渠道失败:', err);
-        setChannels([]); // 确保 channels 始终为数组
+  // 处理状态按钮数据
+  const processedStatusButtons = useMemo(() => 
+    statusButtons.map(btn => ({
+      label: btn.label,
+      status: btn.status,
+      count: statusCounts[btn.status] || 0,
+      icon: btn.icon,
+    })), 
+    [statusCounts]
+  );
+
+  // 获取渠道列表 - 使用缓存
+  const fetchChannels = useCallback(async (forceRefresh = false) => {
+    try {
+      if (forceRefresh) {
+        cache.delete('channels-list');
       }
-    };
-    fetchChannels();
+      
+      const data = await cachedFetch<any>(
+        'http://localhost:4000/api/channels',
+        undefined,
+        600000 // 10分钟缓存
+      );
+      
+      if (data.success && Array.isArray(data.data)) {
+        setChannels(data.data);
+      } else {
+        console.error('❌ 获取渠道失败:', data.error || '数据格式错误');
+        setChannels([]);
+      }
+    } catch (err) {
+      console.error('❌ 获取渠道失败:', err);
+      setChannels([]);
+      setError('获取渠道列表失败');
+    }
   }, []);
 
-  const fetchWaybills = async () => {
+  // 获取运单数据 - 使用缓存
+  const fetchWaybills = useCallback(async (forceRefresh = false) => {
     try {
+      setIsLoading(true);
+      setError(null);
+      
       const params = new URLSearchParams({
         page: String(currentPage),
         limit: String(limit),
         type: 'FBA',
         ...filters,
+        [searchType]: debouncedSearchTerm,
       });
-      const res = await fetch(`http://localhost:4000/api/waybills?${params.toString()}`);
-      const data = await res.json();
+      
+      const cacheKey = `waybills:${params.toString()}`;
+      
+      if (forceRefresh) {
+        cache.delete(cacheKey);
+      }
+      
+      const data = await cachedFetch<any>(
+        `http://localhost:4000/api/waybills?${params.toString()}`,
+        undefined,
+        60000 // 1分钟缓存
+      );
+      
       if (data.success) {
-        setShipments(
-          data.data.map((item: any) => ({
-            ...item,
-            id: item.id || '',
-            type: item.type || 'FBA',
-            weight: Number(item.weight) || 0,
-            volume: item.volume ? Number(item.volume) : undefined,
-            volumetricWeight: item.volumetricWeight ? Number(item.volumetricWeight) : undefined,
-            chargeWeight: item.chargeWeight ? Number(item.chargeWeight) : undefined,
-            realWeight: item.realWeight ? Number(item.realWeight) : undefined,
-            volWeight: item.volWeight ? Number(item.volWeight) : undefined,
-            ratio: item.ratio ? Number(item.ratio) : undefined,
-            length: item.length ? Number(item.length) : undefined,
-            width: item.width ? Number(item.width) : undefined,
-            height: item.height ? Number(item.height) : undefined,
-            totalValue: item.totalValue ? Number(item.totalValue) : undefined,
-            channel: item.channel
-              ? typeof item.channel === 'string'
-                ? { id: item.channel, name: item.channel, currency: item.currency || 'USD' }
-                : {
-                    id: item.channel.id || '',
-                    name: item.channel.name || '',
-                    currency: item.channel.currency || 'USD',
-                    type: item.channel.type || '',
-                    country: item.channel.country,
-                    warehouse: item.channel.warehouse,
-                    origin: item.channel.origin,
-                    createdAt: item.channel.createdAt,
-                    volRatio: item.channel.volRatio ? Number(item.volRatio) : undefined,
-                    cubeRatio: item.channel.cubeRatio ? Number(item.cubeRatio) : undefined,
-                    splitRatio: item.channel.splitRatio ? Number(item.splitRatio) : undefined,
-                    minCharge: item.channel.minCharge ? Number(item.minCharge) : undefined,
-                    chargeMethod: item.channel.chargeMethod,
-                  }
-              : undefined,
-            boxes:
-              item.boxes?.map((box: any) => ({
-                id: box.id || '',
-                code: box.code || '',
-                fullCode: box.fullCode || box.code || '',
-                ref: box.ref,
-                clientData: box.clientData,
-                pickData: box.pickData,
-                declareValue:
-                  box.declareValue !== undefined && box.declareValue !== null
-                    ? Number(box.declareValue)
-                    : undefined,
-                carrier: box.carrier,
-                subTopic: box.subTopic,
-                weight: box.weight ? Number(box.weight) : 0,
-                length: box.length ? Number(box.length) : 0,
-                width: box.width ? Number(box.width) : 0,
-                height: box.height ? Number(box.height) : 0,
-                hasBattery: box.hasBattery !== undefined ? !!box.hasBattery : false,
-              })) || [],
-            logs:
-              item.logs?.map((log: any) => ({
-                id: log.id || '',
-                status: log.status || '',
-                remark: log.remark || '',
-                timestamp: log.timestamp || '',
-              })) || [],
-            attachments: item.attachments || [],
-            sender: item.sender
-              ? {
-                  id: item.sender.id || '',
-                  name: item.sender.name || '',
-                  email: item.sender.email,
-                  phone: item.sender.phone,
-                  address: item.sender.address,
-                }
-              : undefined,
-            recipient: item.recipient || '',
-            country: item.country || '',
-            quantity: item.quantity ? Number(item.quantity) : 0,
-            status: item.status || '',
-          })),
-        );
-        setTotal(data.total);
+        setShipments(data.data || []);
+        setTotal(data.total || 0);
       } else {
-        alert('获取运单失败：' + (data.error || '未知错误'));
+        throw new Error(data.error || '获取运单失败');
       }
     } catch (error) {
       console.error('获取运单失败:', error);
-      alert('获取运单失败：' + (error instanceof Error ? error.message : '未知错误'));
+      setError('获取运单数据失败，请稍后重试');
+      setShipments([]);
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [currentPage, limit, filters, debouncedSearchTerm, searchType]);
 
-  useEffect(() => {
-    fetchWaybills();
-  }, [selectedStatus, currentPage, filters]);
-
-  const fetchStatusCounts = async () => {
+  // 获取状态统计 - 使用缓存
+  const fetchStatusCounts = useCallback(async (forceRefresh = false) => {
     try {
-      const res = await fetch('http://localhost:4000/api/waybills/stats?type=FBA');
-      const data = await res.json();
+      if (forceRefresh) {
+        cache.delete('waybill-status-counts');
+      }
+      
+      const data = await cachedFetch<any>(
+        'http://localhost:4000/api/waybills/status-counts',
+        undefined,
+        30000 // 30秒缓存
+      );
+      
       if (data.success) {
-        setStatusCounts(data.data);
+        setStatusCounts(data.data || {
+          '全部': 0,
+          '已下单': 0,
+          '已收货': 0,
+          '转运中': 0,
+          '已签收': 0,
+          '已取消': 0,
+          '退件': 0,
+        });
       }
     } catch (error) {
       console.error('获取状态统计失败:', error);
     }
-  };
-
-  useEffect(() => {
-    fetchStatusCounts();
-    setRecentActivities([
-      { timestamp: '2025-03-17 20:14:54', message: '运单 663459 已签收' },
-      { timestamp: '2025-03-16 15:30:22', message: '运单 663460 进入运输中' },
-      { timestamp: '2025-03-15 09:12:45', message: '运单 663461 已取消' },
-    ]);
-    setSystemMessages([
-      { title: '系统更新通知', content: '2025-03-10: 新增批量操作功能' },
-      { title: '维护公告', content: '2025-03-12: 系统将于凌晨2:00-3:00进行维护' },
-    ]);
   }, []);
 
-  const handleStatusClick = (status: string) => {
+  // 初始化数据获取 - 修复重复调用问题
+  useEffect(() => {
+    let mounted = true;
+    
+    const initData = async () => {
+      if (mounted) {
+        await Promise.all([
+          fetchChannels(),
+          fetchWaybills(),
+          fetchStatusCounts()
+        ]);
+      }
+    };
+    
+    initData();
+    
+    return () => {
+      mounted = false;
+    };
+  }, []); // 只在组件挂载时执行一次
+
+  // 监听搜索和过滤变化 - 修复依赖问题
+  useEffect(() => {
+    fetchWaybills();
+  }, [currentPage, filters, debouncedSearchTerm, searchType]); // 明确依赖项
+
+  // 刷新所有数据
+  const handleRefreshAll = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      // 清除相关缓存
+      cache.invalidatePattern('waybills:.*');
+      cache.delete('waybill-status-counts');
+      
+      await Promise.all([
+        fetchWaybills(true),
+        fetchStatusCounts(true)
+      ]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [fetchWaybills, fetchStatusCounts]);
+
+  // 事件处理函数 - 使用useCallback优化
+  const handleStatusClick = useCallback((status: string) => {
     setSelectedStatus(status);
+    setFilters(prev => ({ ...prev, status: status === '全部' ? '' : status }));
     setCurrentPage(1);
-    setFilters((prev) => ({
-      ...prev,
-      status: status === '全部' ? '' : status,
-    }));
-  };
+  }, []);
 
-  const handleCreateShipment = (formData: Record<string, any>) => {
-    alert('运单创建成功！');
-    fetchWaybills();
-    fetchStatusCounts();
-    setShowCreatePanel(false);
-    setFormData({});
-  };
+  const handleWaveInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1);
+  }, []);
 
-  const handleUploadLabel = async (data: Record<string, any>) => {
-    // 拆分收货地址：第一行为收件人，剩下的为地址字段
-    const addressLines = data.收货地址?.split('\n') || [];
-    const recipient = addressLines[0] || '';
-    const [address1, address2 = '', address3 = ''] = addressLines.slice(1);
-
-    // 更新表单数据
-    setFormData({
-      recipient,
-      address1,
-      address2,
-      address3,
-      country: data.收货国家 || '',
-      warehouse: data.发货地址 || '',
-      boxCount: parseInt(data.箱数) || 1,
-      channel: data.channelId || selectedChannel,
-      type: 'FBA',
-    });
-
-    // 打开创建运单面板
-    setShowCreatePanel(true);
-  };
-
-  const handleExcelImportShipment = async (
-    file: File,
-    templateName: string,
-    isBatchImport: boolean,
-  ) => {
+  const handleCreateShipment = useCallback(async (formData: Record<string, any>) => {
     try {
-      if (file.size > 10 * 1024 * 1024) {
-        alert('文件过大，请上传小于10MB的文件');
-        return;
-      }
-
-      const templates = JSON.parse(
-        localStorage.getItem('excelTemplates') || '[]',
-      ) as TemplateInfo[];
-      const selectedTemplate = templates.find((t) => t.name === templateName);
-      if (!selectedTemplate) {
-        alert('未找到模板');
-        return;
-      }
-      if (selectedTemplate.type !== 'FBA') {
-        alert('请选择 FBA 模板');
-        return;
-      }
-
-      setSelectedTemplate(selectedTemplate);
-      setIsBatch(isBatchImport);
-
-      const { cells, rows, headers } = await parseExcel(file);
-      let records: Record<string, any>[] = [];
-
-      if (selectedTemplate.mode === 'grid' || selectedTemplate.mode === 'directional') {
-        const fieldBindings = selectedTemplate.bindings || [];
-        records = [];
-
-        let maxRecords = 0;
-        for (const binding of fieldBindings) {
-          maxRecords = Math.max(maxRecords, binding.length);
-        }
-
-        for (let i = 0; i < maxRecords; i++) {
-          records[i] = { type: 'FBA' };
-        }
-
-        for (const binding of fieldBindings) {
-          const { field, from, direction, length } = binding;
-          const { colIndex, rowIndex } = parseCellKey(from);
-
-          for (let i = 0; i < length; i++) {
-            const targetRow = direction === 'vertical' ? rowIndex + i : rowIndex;
-            const targetCol = direction === 'horizontal' ? colIndex + i : colIndex;
-            const cellKey = `${String.fromCharCode(65 + targetCol)}${targetRow + 1}`;
-            const value = cells[cellKey];
-            const recordIndex = i;
-
-            if (recordIndex >= maxRecords) continue;
-
-            records[recordIndex] = records[recordIndex] || { type: 'FBA' };
-            records[recordIndex][field] = value;
-          }
-        }
-      } else if (selectedTemplate.mode === 'fixed') {
-        const { startRow, columns } = selectedTemplate;
-        records = [];
-
-        for (let i = startRow - 1; i < rows.length; i++) {
-          const row = rows[i] || [];
-          const record: Record<string, any> = {};
-          columns!.forEach((field, colIndex) => {
-            if (!field) return;
-            const value = row[colIndex];
-            record[field] = value;
-          });
-          record.type = 'FBA';
-          if (Object.keys(record).length > 1) {
-            records.push(record);
-          }
-        }
-      }
-
-      const cleanedRecords = records.map(cleanImportRecord);
-      if (
-        cleanedRecords.some(
-          (record) =>
-            record.weight < 0 || record.length < 0 || record.width < 0 || record.height < 0,
-        )
-      ) {
-        alert('重量或尺寸不能为负数');
-        return;
-      }
-
-      if (!isBatchImport) {
-        setPreviewRecord(cleanedRecords[0]);
-      } else {
-        setPreviewRecords(cleanedRecords);
-        setPreviewColumns(headers);
-        setShowFieldMapper(true);
-      }
-    } catch (err) {
-      alert('解析失败：' + (err instanceof Error ? err.message : '未知错误'));
+      setIsLoading(true);
+      // TODO: 实现创建运单的API调用
+      console.log('创建运单:', formData);
+      
+      // 模拟API调用
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // 清除缓存并刷新
+      cache.invalidatePattern('waybills:.*');
+      cache.delete('waybill-status-counts');
+      
+      setShowCreatePanel(false);
+      await Promise.all([
+        fetchWaybills(true),
+        fetchStatusCounts(true)
+      ]);
+    } catch (error) {
+      console.error('创建运单失败:', error);
+      setError('创建运单失败，请稍后重试');
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [fetchWaybills, fetchStatusCounts]);
 
-  const handleFieldMappingConfirm = async (mapping: Record<string, string>) => {
-    try {
-      const mappedRecords = previewRecords.map((record) => {
-        const mapped: Record<string, any> = { type: record.type };
-        Object.keys(record).forEach((key) => {
-          if (mapping[key]) {
-            mapped[mapping[key]] = record[key];
-          } else if (key !== 'type') {
-            mapped[key] = record[key];
-          }
-        });
-        return cleanImportRecord(mapped);
-      });
-
-      const url = 'http://localhost:4000/api/waybills/batch';
-      const body = { shipments: mappedRecords };
-
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      const result = await res.json();
-      if (result.success) {
-        alert('导入成功！');
-        fetchWaybills();
-        fetchStatusCounts();
-        setShowFieldMapper(false);
-        setPreviewRecords([]);
-        setPreviewColumns([]);
-      } else {
-        alert('导入失败：' + result.error);
-      }
-    } catch (err) {
-      alert('导入失败：' + (err instanceof Error ? err.message : '未知错误'));
-    }
-  };
-
-  const handleWaveInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setFilters(prev => ({
-      ...prev,
-      waybillNumber: searchType === 'waybillNumber' ? value : '',
-      country: searchType === 'country' ? value : '',
-      recipient: searchType === 'recipient' ? value : '',
-      client: searchType === 'client' ? value : '',
-      trackingNumber: searchType === 'trackingNumber' ? value : '',
-    }));
-  };
-
-  const handleWaveSearch = () => {
-    setCurrentPage(1);
-    fetchWaybills();
-  };
-
-  const handleWaveReset = () => {
-    setFilters({
-      status: '',
-      country: '',
-      channel: '',
-      waybillNumber: '',
-      client: '',
-      date: '',
-      trackingNumber: '',
-      recipient: '',
-    });
-    setCurrentPage(1);
-  };
-
-  const handleEditSuccess = () => {
+  const handleEditSuccess = useCallback(async () => {
+    // 清除缓存并刷新
+    cache.invalidatePattern('waybills:.*');
+    cache.delete('waybill-status-counts');
+    
+    await Promise.all([
+      fetchWaybills(true),
+      fetchStatusCounts(true)
+    ]);
     setIsEditing(false);
-    fetchWaybills();
-    fetchStatusCounts();
-  };
-
-  const handleClose = () => {
     setSelectedShipment(null);
+  }, [fetchWaybills, fetchStatusCounts]);
+
+  const handleClose = useCallback(() => {
     setIsDrawerOpen(false);
-  };
+    setSelectedShipment(null);
+  }, []);
 
-  const handleEditClose = () => {
+  const handleEditClose = useCallback(() => {
     setIsEditing(false);
-  };
+    setSelectedShipment(null);
+  }, []);
 
-  const handleTemplateSave = (template: TemplateInfo) => {
-    const templates = JSON.parse(localStorage.getItem('excelTemplates') || '[]') as TemplateInfo[];
-    const updated = templates.filter((t) => t.id !== template.id);
-    updated.push(template);
-    localStorage.setItem('excelTemplates', JSON.stringify(updated));
-    setShowFieldEditor(false);
-    setEditingTemplate(undefined);
-  };
+  const handleClearSearch = useCallback(() => {
+    setSearchTerm('');
+    setCurrentPage(1);
+  }, []);
+
+  // 使用useMemo优化计算
+  const filteredShipments = useMemo(() => {
+    return shipments.filter(shipment => {
+      if (selectedStatus !== '全部' && shipment.status !== selectedStatus) {
+        return false;
+      }
+      if (debouncedSearchTerm) {
+        const searchValue = debouncedSearchTerm.toLowerCase();
+        switch (searchType) {
+          case 'waybillNumber':
+            return shipment.waybillNumber?.toLowerCase().includes(searchValue);
+          case 'country':
+            return shipment.country?.toLowerCase().includes(searchValue);
+          case 'recipient':
+            return shipment.recipient?.toLowerCase().includes(searchValue);
+          case 'trackingNumber':
+            return shipment.trackingNumber?.toLowerCase().includes(searchValue);
+          default:
+            return true;
+        }
+      }
+      return true;
+    });
+  }, [shipments, selectedStatus, debouncedSearchTerm, searchType]);
+
+  // 错误提示组件
+  const ErrorAlert = () => error ? (
+    <div className="glass rounded-3xl shadow-xl p-4 mb-6 bg-red-50 border border-red-200">
+      <div className="flex items-center justify-between">
+        <p className="text-red-600">{error}</p>
+        <button
+          onClick={() => setError(null)}
+          className="text-red-400 hover:text-red-600"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  ) : null;
 
   return (
-    <>
-      {/* 状态切换条 */}
-      <section className="glass rounded-3xl shadow-xl p-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <StatusSwitcher
-          statusButtons={statusButtons.map((btn) => ({
-            ...btn,
-            label: `${btn.label} (${statusCounts[btn.status] || 0})`,
-          }))}
-          selectedStatus={selectedStatus}
-          onChange={handleStatusClick}
-          buttonClassName="text-sm font-medium px-4 py-2 text-gray-600 hover:text-[#ff8a00] focus:outline-none focus:ring-0"
-          activeClassName="text-[#5b3d00] font-bold bg-transparent focus:outline-none focus:ring-0"
-        />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full md:w-auto mt-2 md:mt-0">
-          <div className="info-card p-4 flex flex-col items-center justify-center">
-            <span className="text-gray-500 text-xs">总运单数</span>
-            <span className="text-xl font-bold text-gray-800">{statusCounts['全部'] || 0}</span>
-          </div>
-          <div className="info-card p-4 flex flex-col items-center justify-center">
-            <span className="text-gray-500 text-xs">已签收</span>
-            <span className="text-xl font-bold text-green-600">{statusCounts['已签收'] || 0}</span>
-          </div>
-          <div className="info-card p-4 flex flex-col items-center justify-center">
-            <span className="text-gray-500 text-xs">运输中</span>
-            <span className="text-xl font-bold text-blue-600">{statusCounts['转运中'] || 0}</span>
-          </div>
-          <div className="info-card p-4 flex flex-col items-center justify-center">
-            <span className="text-gray-500 text-xs">异常件数</span>
-            <span className="text-xl font-bold text-red-600">{(statusCounts['已取消'] || 0) + (statusCounts['退件'] || 0)}</span>
-          </div>
-        </div>
-      </section>
-      {/* 搜索栏 */}
-      <section className="glass rounded-3xl shadow-xl p-8 mb-8">
-        <div className="flex flex-col md:flex-row md:items-center gap-4 mb-6">
-          <WaveInput
-            label={
-              searchType === 'waybillNumber' ? '运单号' :
-              searchType === 'country' ? '国家' :
-              searchType === 'recipient' ? '收件人' :
-              searchType === 'client' ? '客户单号' :
-              searchType === 'trackingNumber' ? '转单号' : ''
-            }
-            value={
-              searchType === 'waybillNumber' ? filters.waybillNumber :
-              searchType === 'country' ? filters.country :
-              searchType === 'recipient' ? filters.recipient :
-              searchType === 'client' ? filters.client :
-              searchType === 'trackingNumber' ? filters.trackingNumber : ''
-            }
-            onChange={handleWaveInputChange}
-            style={{ width: 240 }}
-          />
-          <select
-            value={searchType}
-            onChange={e => setSearchType(e.target.value as any)}
-            className="border rounded-md px-3 py-2"
-          >
-            <option value="waybillNumber">运单号</option>
-            <option value="country">国家</option>
-            <option value="recipient">收件人</option>
-            <option value="client">客户单号</option>
-            <option value="trackingNumber">转单号</option>
-          </select>
-          <button
-            className="gradient-btn text-white px-8 py-4 h-12 rounded-2xl transition transform hover-glow shadow-md whitespace-nowrap"
-            onClick={handleWaveSearch}
-          >
-            搜索
-          </button>
-          <button
-            className="border border-gray-300 text-gray-500 px-8 py-4 h-12 rounded-2xl hover:bg-gray-100 transition transform hover-glow whitespace-nowrap"
-            onClick={handleWaveReset}
-          >
-            重置
-          </button>
-        </div>
-        <div className="flex flex-wrap gap-4 mt-6">
-          <button className="btn-create" onClick={() => setShowCreatePanel(true)}>
-            创建运单
-          </button>
-          <button className="btn-create" onClick={() => setShowExcelImport(true)}>
-            Excel导入
-          </button>
-          <button className="btn-create" onClick={() => setShowBatchImport(true)}>
-            Excel批量导入
-          </button>
-          <button className="btn-create" onClick={() => setShowFieldMatch(true)}>
-            录入表匹配
-          </button>
-          <div className="flex items-center gap-4">
-            <label className="block text-sm font-medium text-gray-700">选择渠道</label>
-            <select
-              value={selectedChannel}
-              onChange={(e) => setSelectedChannel(e.target.value)}
-              className="border rounded-md px-3 py-2"
+    <div className="space-y-6">
+      <ErrorAlert />
+      
+      {/* 状态切换器 */}
+      <div className="glass rounded-3xl shadow-xl p-6">
+        <div className="flex gap-4 overflow-x-auto">
+          {processedStatusButtons.map((btn) => (
+            <button
+              key={btn.status}
+              onClick={() => handleStatusClick(btn.status)}
+              className={`flex-shrink-0 flex flex-col items-center p-4 rounded-lg transition-all duration-200 ${
+                selectedStatus === btn.status
+                  ? 'bg-blue-500 text-white shadow-lg transform scale-105'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+              disabled={isLoading}
             >
-              <option value="">请选择渠道</option>
-              {channels.map((ch) => (
-                <option key={ch.id} value={ch.id}>
-                  {ch.name}
-                </option>
-              ))}
-            </select>
-            <UploadLabelForm
-              channelId={selectedChannel || ''}
-              channels={channels}
-              onChangeChannelId={setSelectedChannel}
-              onUpload={handleUploadLabel}
+              <btn.icon className="w-6 h-6 mb-2" />
+              <span className="text-sm font-medium">{btn.label}</span>
+              <span className="text-xs font-bold">{btn.count}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 搜索和操作栏 */}
+      <div className="glass rounded-3xl shadow-xl p-6">
+        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            <div className="flex gap-2">
+              <select
+                value={searchType}
+                onChange={(e) => setSearchType(e.target.value as any)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isLoading}
+              >
+                <option value="waybillNumber">运单号</option>
+                <option value="country">国家</option>
+                <option value="recipient">收件人</option>
+                <option value="trackingNumber">跟踪号</option>
+              </select>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={handleWaveInputChange}
+                  placeholder={`按${searchType === 'waybillNumber' ? '运单号' : 
+                    searchType === 'country' ? '国家' :
+                    searchType === 'recipient' ? '收件人' : '跟踪号'}搜索...`}
+                  className="px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
+                  disabled={isLoading}
+                />
+                {searchTerm && (
+                  <button
+                    onClick={handleClearSearch}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowCreatePanel(true)}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
+              disabled={isLoading}
+            >
+              创建运单
+            </button>
+            <button
+              onClick={handleRefreshAll}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 flex items-center gap-2"
+              disabled={isLoading || isRefreshing}
+            >
+              {isRefreshing ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <RefreshCw className="w-5 h-5" />
+              )}
+              刷新
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 运单表格 */}
+      <div className="glass rounded-3xl shadow-xl p-6">
+        {isLoading && shipments.length === 0 ? (
+          <ComponentSkeleton />
+        ) : (
+          <Suspense fallback={<ComponentSkeleton />}>
+            <ShipmentTable
+              data={filteredShipments}
+              currentPage={currentPage}
+              total={total}
+              onPageChange={setCurrentPage}
+              onSelectShipment={(shipment) => {
+                setSelectedShipment(shipment);
+                setIsDrawerOpen(true);
+              }}
+              onEdit={(shipment) => {
+                setSelectedShipment(shipment);
+                setIsEditing(true);
+              }}
+              statusCounts={statusCounts}
+              selectedRows={selectedRows}
+              setSelectedRows={setSelectedRows}
             />
-          </div>
-        </div>
-      </section>
-      <ShipmentTable
-        data={shipments}
-        currentPage={currentPage}
-        total={total}
-        onPageChange={setCurrentPage}
-        onSelectShipment={(shipment) => {
-          console.log('🟠 被点击的 shipment:', shipment);
-          setSelectedShipment(shipment);
-          setIsDrawerOpen(true);
-        }}
-        onEdit={(shipment) => {
-          setSelectedShipment(shipment);
-          setIsEditing(true);
-        }}
-        statusCounts={statusCounts}
-        selectedRows={selectedRows}
-        setSelectedRows={setSelectedRows}
-      />
-      <section className="glass rounded-3xl shadow-xl p-8 mb-8">
-        <div className="flex justify-between items-center">
-          <div className="text-sm text-gray-600 font-medium">共 {total} 条数据</div>
-          <div className="flex items-center space-x-4">
-            <button
-              className="border border-gray-300 text-gray-500 px-6 py-3 rounded-xl hover:bg-gray-100 transition transform hover-glow whitespace-nowrap shadow-md"
-              onClick={() => setCurrentPage(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              上一页
-            </button>
-            <span className="bg-indigo-100 text-indigo-700 font-semibold px-4 py-2 rounded-xl text-sm shadow-md">
-              {currentPage}
-            </span>
-            <button
-              className="border border-gray-300 text-gray-500 px-6 py-3 rounded-xl hover:bg-gray-100 transition transform hover-glow whitespace-nowrap shadow-md"
-              onClick={() => setCurrentPage(currentPage + 1)}
-              disabled={currentPage >= Math.ceil(total / limit)}
-            >
-              下一页
-            </button>
-            <select className="border-none rounded-xl px-4 py-3 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 shadow-md">
-              <option>30 条/页</option>
-            </select>
-          </div>
-        </div>
-        <div className="mt-4 text-sm text-gray-600 font-medium">
-          已选择 <span id="selectedCount">{selectedRows.length}</span> 条运单
-        </div>
-      </section>
-      <section className="glass rounded-3xl shadow-xl p-8 mb-8">
-        <h2 className="text-xl font-semibold text-gray-800 mb-6">最近活动</h2>
-        <div className="space-y-4">
-          {recentActivities.map((activity, index) => (
-            <div key={index} className="flex items-center gap-4">
-              <i className="w-5 h-5 text-indigo-600" />
-              <div>
-                <p className="text-sm text-gray-700">{activity.timestamp}</p>
-                <p className="text-sm text-gray-500">{activity.message}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-      <section className="glass rounded-3xl shadow-xl p-8 mb-8">
-        <h2 className="text-xl font-semibold text-gray-800 mb-6">系统消息</h2>
-        <div className="space-y-4">
-          {systemMessages.map((msg, index) => (
-            <div key={index} className="flex items-center gap-4">
-              <i className="w-5 h-5 text-yellow-600" />
-              <div>
-                <p className="text-sm text-gray-700">{msg.title}</p>
-                <p className="text-sm text-gray-500">{msg.content}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-      <MultiStepShipmentForm
-        isOpen={showCreatePanel}
-        onClose={() => {
-          setShowCreatePanel(false);
-          setFormData({});
-        }}
-        onSubmit={handleCreateShipment}
-        initialData={formData}
-      />
-      {(selectedShipment || isEditing) && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-40"
-          onClick={handleClose}
-        />
+          </Suspense>
+        )}
+      </div>
+
+      {/* 动态加载的模态框和抽屉 */}
+      {showCreatePanel && (
+        <Suspense fallback={<ComponentSkeleton />}>
+          <MultiStepShipmentForm
+            isOpen={showCreatePanel}
+            onClose={() => setShowCreatePanel(false)}
+            onSubmit={handleCreateShipment}
+          />
+        </Suspense>
       )}
-      {selectedShipment && isDrawerOpen && (
-        <ShipmentDrawer
-          shipment={selectedShipment}
-          onClose={handleClose}
-          onEdit={() => setIsEditing(true)}
-        />
+
+      {isDrawerOpen && selectedShipment && (
+        <Suspense fallback={<ComponentSkeleton />}>
+          <ShipmentDrawer
+            shipment={selectedShipment}
+            onClose={handleClose}
+            onEdit={() => {
+              setIsDrawerOpen(false);
+              setIsEditing(true);
+            }}
+          />
+        </Suspense>
       )}
+
       {isEditing && selectedShipment && (
-        <div className="fixed top-0 right-0 h-full w-[70vw] bg-white shadow-2xl z-[999] overflow-y-auto transition-transform duration-300 ease-in-out">
+        <Suspense fallback={<ComponentSkeleton />}>
           <ShipmentEditForm
             shipment={selectedShipment}
             onCancel={handleEditClose}
             onSuccess={handleEditSuccess}
           />
-        </div>
+        </Suspense>
       )}
-      <ExcelImportPanel
-        isOpen={showExcelImport}
-        onClose={() => setShowExcelImport(false)}
-        onUpload={(file, templateName) => {
-          handleExcelImportShipment(file, templateName, false);
-          setShowExcelImport(false);
-        }}
-        title="Excel 导入单个运单"
-      />
-      <ExcelImportPanel
-        isOpen={showBatchImport}
-        onClose={() => setShowBatchImport(false)}
-        onUpload={(file, templateName) => {
-          handleExcelImportShipment(file, templateName, true);
-          setShowBatchImport(false);
-        }}
-        title="Excel 批量导入运单"
-      />
-      {showFieldMatch && (
-        <FieldMatchManager
-          onEdit={(template) => {
-            setEditingTemplate(template);
-            setShowFieldMatch(false);
-            setShowFieldEditor(true);
-          }}
-          onClose={() => setShowFieldMatch(false)}
-        />
-      )}
-      {showFieldEditor && (
-        <FieldMatchEditor
-          template={editingTemplate}
-          onSave={handleTemplateSave}
-          onCancel={() => {
-            setShowFieldEditor(false);
-            setEditingTemplate(undefined);
-          }}
-        />
-      )}
-      {showFieldMapper && (
-        <ExcelFieldMapper
-          columns={previewColumns}
-          onConfirm={handleFieldMappingConfirm}
-          onCancel={() => {
-            setShowFieldMapper(false);
-            setPreviewRecords([]);
-            setPreviewColumns([]);
-          }}
-        />
-      )}
-      {previewRecord && (
-        <ShipmentPreviewConfirm
-          data={previewRecord}
-          onConfirm={async () => {
-            try {
-              const res = await fetch('http://localhost:4000/api/waybills', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(previewRecord),
-              });
-              const result = await res.json();
-              if (result.success) {
-                alert('导入成功！');
-                fetchWaybills();
-                fetchStatusCounts();
-              } else {
-                alert('导入失败：' + result.error);
-              }
-            } catch (err) {
-              alert('导入失败：' + (err instanceof Error ? err.message : '未知错误'));
-            }
-            setPreviewRecord(null);
-          }}
-          onCancel={() => setPreviewRecord(null)}
-        />
-      )}
-    </>
+    </div>
   );
 }

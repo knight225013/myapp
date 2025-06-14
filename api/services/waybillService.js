@@ -2,6 +2,8 @@ const { PrismaClient } = require('@prisma/client');
 const { calculateFreight } = require('../utils/freightUtils');
 const { validateShipmentAgainstChannel } = require('../utils/channelValidation');
 const { cleanPrismaData } = require('../utils/cleanPrismaInput');
+const { applyChannelRules } = require('../utils/channelUtils');
+const { calculateBoxSummary } = require('../utils/boxSummary');
 
 const prisma = new PrismaClient();
 const tenantId = 'b21918cb-9cb6-4482-ac33-19c70b2c0a12';
@@ -113,23 +115,7 @@ async function createWaybill(data) {
   });
   if (!channelData) throw new Error(`未找到 ID 为 ${finalChannelId} 的渠道`);
 
-  const shipmentData = {
-    quantity: parsedBoxCount,
-    weight: parseFloat(weight) || 0,
-    chargeWeight: parseFloat(chargeWeight) || 0,
-    length: parseFloat(length) || null,
-    width: parseFloat(width) || null,
-    height: parseFloat(height) || null,
-    phone: phone || null,
-    email: email || null,
-    declaredValue: parseFloat(declaredValue) || null,
-  };
-
-  const validationErrors = validateShipmentAgainstChannel(shipmentData, channelData);
-  if (validationErrors.length > 0) {
-    throw new Error(validationErrors.join('；'));
-  }
-
+  // 处理箱子数据
   let finalBoxes = Array(parsedBoxCount)
     .fill({})
     .map((_, i) => ({
@@ -163,6 +149,47 @@ async function createWaybill(data) {
     });
   }
 
+  // 计算重量和体积数据
+  let finalWeight = parseFloat(weight) || 0;
+  let finalVolume = parseFloat(volume) || 0;
+  let finalVolumetricWeight = parseFloat(volumetricWeight) || 0;
+  let finalChargeWeight = parseFloat(chargeWeight) || 0;
+
+  // 如果没有提供重量和体积数据，从箱子数据中计算
+  if (!finalWeight || !finalVolume || !finalVolumetricWeight) {
+    const boxSummary = calculateBoxSummary(finalBoxes, channelData);
+    finalWeight = finalWeight || boxSummary.totalWeight;
+    finalVolume = finalVolume || boxSummary.volume;
+    finalVolumetricWeight = finalVolumetricWeight || boxSummary.volumetricWeight;
+  }
+
+  // 如果没有提供计费重量，根据渠道规则计算
+  if (!finalChargeWeight) {
+    const chargeWeightResult = applyChannelRules(
+      finalWeight,
+      finalVolumetricWeight,
+      channelData
+    );
+    finalChargeWeight = chargeWeightResult.chargeWeight || 0;
+  }
+
+  const shipmentData = {
+    quantity: parsedBoxCount,
+    weight: finalWeight,
+    chargeWeight: finalChargeWeight,
+    length: parseFloat(length) || null,
+    width: parseFloat(width) || null,
+    height: parseFloat(height) || null,
+    phone: phone || null,
+    email: email || null,
+    declaredValue: parseFloat(declaredValue) || null,
+  };
+
+  const validationErrors = validateShipmentAgainstChannel(shipmentData, channelData);
+  if (validationErrors.length > 0) {
+    throw new Error(validationErrors.join('；'));
+  }
+
   const tenant = await prisma.tenant.findFirst();
   const customer = await prisma.customer.findFirst();
   const user = await prisma.user.findFirst();
@@ -176,7 +203,13 @@ async function createWaybill(data) {
   }
 
   const freight = calculateFreight(
-    { weight, chargeWeight, quantity: parsedBoxCount, declaredValue, boxes: finalBoxes },
+    { 
+      weight: finalWeight, 
+      chargeWeight: finalChargeWeight, 
+      quantity: parsedBoxCount, 
+      declaredValue, 
+      boxes: finalBoxes 
+    },
     channelData,
   );
 
@@ -188,10 +221,10 @@ async function createWaybill(data) {
     country: country || '',
     warehouse: warehouse || null,
     quantity: parseInt(boxCount, 10) || 1,
-    weight: parseFloat(weight) || 0,
-    volume: parseFloat(volume) || 0,
-    volumetricWeight: parseFloat(volumetricWeight) || 0,
-    chargeWeight: parseFloat(chargeWeight) || 0,
+    weight: finalWeight,
+    volume: finalVolume,
+    volumetricWeight: finalVolumetricWeight,
+    chargeWeight: finalChargeWeight,
     length: parseFloat(length) || null,
     width: parseFloat(width) || null,
     height: parseFloat(height) || null,

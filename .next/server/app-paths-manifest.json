@@ -1,10 +1,4 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/api/settings/overview/route": "app/api/settings/overview/route.js",
   "/api/channels/route": "app/api/channels/route.js",
-  "/settings/page": "app/settings/page.js",
-  "/settings/company/page": "app/settings/company/page.js",
-  "/settings/users/page": "app/settings/users/page.js",
-  "/settings/warehouses/page": "app/settings/warehouses/page.js",
-  "/channels/page": "app/channels/page.js"
+  "/waybill/page": "app/waybill/page.js"
 }

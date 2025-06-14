@@ -2,6 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { PrismaClient } = require('@prisma/client');
+const { applyChannelRules } = require('../utils/channelUtils');
+const { calculateBoxSummary } = require('../utils/boxSummary');
 const prisma = new PrismaClient();
 
 exports.uploadAndParseLabel = async (req, res) => {
@@ -85,6 +87,14 @@ exports.uploadAndParseLabel = async (req, res) => {
             material: '',
           }));
 
+        // 计算重量和体积数据
+        const boxSummary = calculateBoxSummary(finalBoxes, channel);
+        const chargeWeightResult = applyChannelRules(
+          boxSummary.totalWeight,
+          boxSummary.volumetricWeight,
+          channel
+        );
+
         const newWaybill = await prisma.fBAOrder.create({
           data: {
             type: 'FBA',
@@ -95,6 +105,10 @@ exports.uploadAndParseLabel = async (req, res) => {
             country: parsedData.country,
             warehouse: parsedData.warehouse,
             quantity: boxCount,
+            weight: boxSummary.totalWeight,
+            volume: boxSummary.volume,
+            volumetricWeight: boxSummary.volumetricWeight,
+            chargeWeight: chargeWeightResult.chargeWeight || 0,
             channel: { connect: { id: channelId } },
             senderName: parsedData.senderName,
             boxes: { create: finalBoxes },
